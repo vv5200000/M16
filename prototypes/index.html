@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M16 · 第一案《猎杀营》· 可交互原型</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#151a22; --ink:#d8dee9; --dim:#7a8494;
+    --accent:#8fa8c8; --accent2:#c8a06a; --line:#2a313c;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Georgia","STSong","Songti SC","SimSun",serif;line-height:1.85;}
+  #wrap{max-width:780px;margin:0 auto;padding:28px 22px 120px;}
+  header h1{font-size:20px;letter-spacing:2px;color:var(--accent);margin:0 0 4px;}
+  header .sub{color:var(--dim);font-size:13px;margin:0 0 14px;}
+  #scene-track{display:flex;gap:6px;font-size:12px;color:var(--dim);
+    border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:18px;flex-wrap:wrap;}
+  #scene-track span.on{color:var(--accent2);font-weight:bold;}
+  #scene-track span.done{color:#5b6779;}
+  #stream{white-space:pre-wrap;word-break:break-word;}
+  #stream .p{margin:0 0 16px;}
+  #stream .scene-head{color:var(--accent2);font-weight:bold;margin:22px 0 14px;
+    font-size:15px;letter-spacing:1px;}
+  #stream .kw-block{background:var(--panel);border-left:3px solid var(--accent);
+    padding:10px 14px;margin:0 0 12px;border-radius:0 6px 6px 0;}
+  #stream .kw-block .w{color:var(--accent);font-size:12px;opacity:.85;margin-bottom:2px;}
+  #stream .nudge{color:var(--dim);font-size:13px;font-style:italic;margin:10px 0 14px;}
+  #stream .miss{color:#c98f7a;font-size:14px;margin:0 0 12px;}
+  #stream .theend{color:var(--accent2);text-align:center;margin:28px 0 6px;letter-spacing:4px;font-size:16px;}
+  #input-zone{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(transparent,var(--bg) 30%);
+    padding:22px 0 18px;}
+  #inner{max-width:780px;margin:0 auto;padding:0 22px;}
+  #bar{display:flex;gap:8px;}
+  #input{flex:1;background:var(--panel);border:1px solid var(--line);color:var(--ink);
+    padding:12px 14px;font-size:15px;border-radius:8px;outline:none;font-family:inherit;}
+  #input:focus{border-color:var(--accent);}
+  #hint{color:var(--dim);font-size:12px;margin-top:8px;}
+  #chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .chip{background:var(--panel);border:1px solid var(--line);color:var(--ink);
+    padding:4px 10px;border-radius:20px;font-size:12px;cursor:pointer;font-family:inherit;}
+  .chip.skip{background:transparent;border-style:dashed;color:var(--dim);}
+  .chip:hover{border-color:var(--accent);color:var(--accent);}
+  .chip.done{opacity:.35;text-decoration:line-through;cursor:default;}
+  details.dev{margin-top:26px;font-size:12px;color:var(--dim);}
+  details.dev summary{cursor:pointer;}
+  #devlog{width:100%;background:#0a0d12;border:1px solid var(--line);color:#9fd6a0;
+    font-family:Consolas,monospace;font-size:11px;padding:8px;border-radius:6px;
+    white-space:pre;overflow:auto;max-height:260px;}
+  .devrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .devrow button{background:var(--panel);border:1px solid var(--line);color:var(--ink);
+    padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-family:inherit;}
+  .devrow button:hover{border-color:var(--accent);}
+  #profile b{color:var(--accent2);}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <header>
+    <h1>M16 · 第一案《猎杀营》</h1>
+    <p class="sub">关键词交互 · 无痕投射原型 · 开发者版 v1.2（CloudBase 线上收集 / 本地离线可用）</p>
+  </header>
+  <div id="scene-track"></div>
+  <div id="stream"></div>
+  <details class="dev">
+    <summary>开发者面板（行为日志 / 隐性分叉 / 档案）</summary>
+    <div class="devrow" style="margin-top:8px;">
+      <span id="sessionId"></span>
+      <button onclick="exportLog()">导出行为日志 JSON</button>
+      <button onclick="resetAll()">重置 / 重新开始</button>
+      <span id="syncStatus" style="color:var(--dim);"></span>
+    </div>
+    <div id="profile" style="margin:10px 0;"></div>
+    <pre id="devlog"></pre>
+  </details>
+</div>
+
+<div id="input-zone">
+  <div id="inner">
+    <div id="bar">
+      <input id="input" type="text" placeholder="输入你想查看的人、物、线索或概念，回车，或点击下方建议词" autocomplete="off">
+    </div>
+    <div id="hint"></div>
+    <div id="chips"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   数据层：5 场景 · 关键词词库 · 隐性分叉
+   ============================================================ */
+const SCENES = {
+  1:{
+    name:"① 郊野公园 · 现场",
+    threshold:4,
+    advHint:"「手机」或「通话记录」，或「跳过」",
+    paras:[
+      "雨下了整整三天。M市郊野公园的泥土泡成了一锅暗红色的稀粥。",
+      "我蹲在警戒线边缘，雨衣兜帽压得很低。雨水顺着帽檐滴在膝盖上，渗进裤管，凉得像一条蛇顺着小腿往下爬。更难受的是手套——湿透了，指尖泡得发白，每一次握拳都能挤出冷水。",
+      "手机震了。陈默发来一行字：*“看完了？什么想法。”*",
+      "我没回他，掀开帐篷帘。法医老周冲我点点头，挪开身子。",
+      "死者男性，三十五岁，户外冲锋衣，登山靴。右手被登山绳吊在横杆上，整个人跪着。致命伤在颈侧，一刀割开颈动脉，利落得像是外科手术。",
+      "但让我僵住的，是他的左手掌心。那里被人用记号笔写了一个字：**“猎”**。",
+      "法医老周把尸检报告递过来，用笔尖点着报告上的关键处：“刀口从左向右，右撇子。深度一致，没有犹豫。死者体内没有毒素，胃里是几小时前吃的夜宵——出门前他吃过东西。”",
+      "“像是赴约。”我说。",
+      "老周点点头：“像是赴一个他认为很安全的人的约。”",
+      "我重新看向那个“猎”字。雨水从帐篷缝隙里溅进来，落在掌心上，那个字被浸得微微发胀。我盯着它看了很久。",
+      "雨还没停。这一处，还能查的东西很多——尸体、现场、人，你从哪个开始？"
+    ],
+    keywords:[
+      {k:"猎字",   w:["猎字","笔迹","字","那个字"], dim:"S", t:"“猎”字写在左手掌心，记号笔，黑色。起笔重、收尾稳、没有颤抖——写这个字的人情绪激烈但完全可控。字的右下方有一道极细的拖尾，方向向左下，像是笔尖离开掌面时被什么阻了一下。"},
+      {k:"绳结",   w:["绳结","绳子","结","渔人结"], dim:"S", t:"吊着右手的登山绳打的结是“渔人结”。这种结法常用于户外登山、攀岩和狩猎。结扣扎得很紧、受力均匀，打结人手劲大、经验丰富。"},
+      {k:"鞋印",   w:["鞋印","脚印","足迹","鞋","靴子"], dim:"S", t:"现场有一组脚印从密林深处延伸出来，绕到尸体后方，又沿原路退回去——来和回是同一条路。凶手杀人后没有慌张逃跑。鞋底磨损：中间深、两侧全新，穿鞋人长期行走在坚硬粗糙的地面。足迹深度推算：凶手体重约80公斤。"},
+      {k:"冻伤疤", w:["冻伤疤","疤痕","旧伤","伤疤","手疤"], dim:"S / N", t:"尸体手腕内侧有一小块淡褐色旧疤，是冻疮愈合后的色素沉淀。但这块疤在“猎”字的笔迹下面——是凶手握持死者手掌时，把自己的旧伤压进了掌面。凶手有一双长年裸露在低温环境里的手。"},
+      {k:"尸体姿势",w:["尸体姿势","姿势","跪姿","吊着"], dim:"S / N", t:"右手被吊着，整个人跪在地上，像在忏悔。这种姿势不是随意摆的，是凶手刻意设计的——像一种仪式。"},
+      {k:"周围环境",w:["周围环境","公园","现场","环境","围墙"], dim:"S", t:"郊野公园东侧围墙有一处被剪开的铁丝网豁口，通向一条废弃的防火道。沿防火道往东走二十分钟，就是关氏冷链物流的仓库区。"},
+      {k:"法医",   w:["法医","老周","尸检","报告"], dim:"S", t:"老周把尸检报告推过来：“刀口从左向右——凶手大概率是右撇子，身高一米七八到一米八二之间。死者胃里是几小时前吃的夜宵，没什么毒物。他出门前吃了饭，是去赴约。”"},
+      {k:"手机",   w:["手机","通话记录","通讯","电话"], dim:"TRIGGER", to:2, t:"死者的手机在证物袋里，关机状态。技术室正在尝试恢复被删除的通话记录。暂时无结果。"},
+      {k:"身份",   w:["身份","死者","陆征","死者是谁"], dim:"N", t:"死者叫陆征，三十五岁，“铁线户外社”首席领队。从业十二年，户外圈口碑极好，几乎所有跟他出过队的人都评价他“稳重、细心、让人放心”。"}
+    ]
+  },
+  2:{
+    name:"② BAU 办公室",
+    threshold:5,
+    advHint:"「下一步」，或「跳过」",
+    paras:[
+      "从现场回来，我在BAU办公室的桌前坐下。三份档案摊在面前——赵远山、钱冬青、孙狩。",
+      "陈默站在窗边，背对着我：“这三个人，你觉得谁？”",
+      "我拿起第一份档案。赵远山，四十七岁，前动物园驯养员，擅长麻醉枪和绳结，因违规麻醉保护动物被开除。食指伤残，神经坏死。",
+      "第二份，钱冬青，三十八岁，西北籍冷库搬运工，左手指甲缝常有戈壁沙土，手上有冻伤疤。有持刀威胁前科，但案底显示——他见血就晕。",
+      "第三份，孙狩，二十九岁，户外兼职领队。和陆征有竞争关系，手上茧厚，会绳结。案发当晚在酒吧，有三人作证，体重六十五公斤。",
+      "我把三份档案合上，靠在椅背上。",
+      "“都有矛盾。”我说，“赵远山的笔迹对不上，钱冬青的心理对不上，孙狩的物证对不上。”",
+      "陈默转过身来：“所以？”",
+      "“所以，”我看着他，“还有一种可能——这三份档案，是有人故意摆给我们的。”",
+      "陈默没说话。但他的眼神告诉我，他想的一样。"
+    ],
+    keywords:[
+      {k:"赵远山",   w:["赵远山","远山"], dim:"S", t:"四十七岁，前动物园驯养员。擅长绳结、麻醉枪，野外经验丰富。因“违规麻醉保护动物”被开除。左手食指工伤截指，神经坏死，无法精准握笔。"},
+      {k:"钱冬青",   w:["钱冬青","冬青"], dim:"S", t:"三十八岁，西北籍，冷库搬运工。左手常有戈壁沙土，手上有冻伤疤。三年前因持刀威胁被拘留，但案底显示他极端畏惧流血场景——工友受伤时他当场晕厥。"},
+      {k:"孙狩",     w:["孙狩","狩"], dim:"S", t:"二十九岁，户外兼职领队。和陆征有业务竞争关系。手上茧厚，会打渔人结。案发时在酒吧，有收银小票和三位酒友作证。体重六十五公斤。"},
+      {k:"竞争关系", w:["竞争关系","业务","竞争","矛盾"], dim:"N", t:"孙狩和陆征都在“铁线户外社”挂职，两人在高端定制线路上有过几次正面竞争。陆征口碑更好，孙狩有时候会接陆征分流的单子，但关系没有公开的恶劣。"},
+      {k:"冲突点",   w:["冲突点","矛盾","疑点","破绽"], dim:"T", t:"赵远山的笔迹对不上；钱冬青的心理画像对不上；孙狩的物证和不在场对不上。三个人都有嫌疑，但三个人的嫌疑都有致命的破绽。"},
+      {k:"铁线户外社",w:["铁线户外社","户外社","铁线"], dim:"N", t:"死者陆征和孙狩都挂职的户外俱乐部。创始人叫关震海，四十八岁，退役特种兵，M市户外圈的祖师爷。关震海本人不在三份档案里。"},
+      {k:"冷链",     w:["冷链","冷冻","物流","关氏"], dim:"S / N", t:"关震海除了“铁线户外社”，名下还有一个冷链物流公司——关氏冷链。而钱冬青的冷库工作经历，恰好在这个方向上有交集。"},
+      {k:"排除法",   w:["排除法","排除","逻辑","推理"], dim:"T", t:"如果你用排除法，三个人都会被你划掉。但排除法有一个前提：凶手一定在这三个人里。如果凶手不在呢？"},
+      {k:"感觉不对", w:["感觉不对","直觉","不对劲","疑心"], dim:"N", t:"你翻档案的时候，总觉得哪里有一层薄薄的纸没捅破。孙狩的“竞争关系”太像现成的动机。赵远山的伤残太像现成的排除理由。钱冬青的血恐惧太像现成的心理障碍。一切都太“整齐”了。"},
+      {k:"下一步",   w:["下一步","怎么办","然后","接着"], dim:"TRIGGER", to:3, t:"陈默看着你：“技术室那边在恢复陆征的手机通话记录，今晚能出结果。在那之前，你准备先碰哪个？”"}
+    ]
+  },
+  3:{
+    name:"③ 审讯室",
+    threshold:5,
+    advHint:"「通话记录」或「手机」，或「跳过」",
+    paras:[
+      "我选了孙狩。",
+      "不是因为他最像凶手——是因为他坐在审讯室里那副“我已经准备好了”的表情，让我觉得不对。",
+      "审讯室的灯亮得刺眼。孙狩坐在对面，双手放在桌上，十指交叉，姿势放松得像是来喝咖啡的。",
+      "“你认识陆征多久了？”",
+      "“四年。”他答得很快，“跟他一起带过队，后来分开带。”",
+      "“分开的原因？”",
+      "“他做高端线，我做普通线。他比我稳，客人更喜欢他。”他说这句话的时候，嘴角带着一点笑，像是在说一件早就消化完的事。",
+      "我看着他。他没躲。",
+      "“昨天晚上你在哪儿？”",
+      "“酒吧。四个人，喝到两点。小票有，人你也能去问。”他微微前倾，“我听说陆征死了。你们找上我，我没意见。但我跟他的关系，没到要杀他的程度。”",
+      "他顿了顿，补了一句：“陆征这个人，真正让人想杀他的，不是他的竞争对手，是他挡了谁的路。”",
+      "我看着他的眼睛。他说完那句话之后，抿了一下嘴唇——嘴唇是干的。一个放松的人，不会在说完话之后下意识舔嘴唇。",
+      "他在紧张。他在紧张什么？"
+    ],
+    keywords:[
+      {k:"孙狩",     w:["孙狩","审讯","孙狩态度"], dim:"N", t:"孙狩坐在审讯室里，语速平稳，逻辑清晰，不回避问题。但他的嘴唇是干的，说完每句话后会下意识抿一下——他在掩盖某种紧张。"},
+      {k:"不在场证明",w:["不在场证明","酒吧","证人","小票"], dim:"S", t:"酒吧小票保存完整，酒友三人均已找到并确认。当晚21:00至次日01:30，孙狩在酒吧，中途只去过一次卫生间（约6分钟）。理论上，他不可能出现在郊野公园。"},
+      {k:"态度",     w:["态度","表现","神情","表情"], dim:"N", t:"他太镇定了。不是那种“无辜者的镇定”，而是“我已经准备好答案的镇定”。每一个问题的回答速度都精确控制在半秒以内——像排练过。"},
+      {k:"竞争关系", w:["竞争关系","同行","业务","高端线"], dim:"N", t:"“他做高端线，我做普通线。”孙狩说陆征比他稳，客人更喜欢陆征。语气平静，但最后一句“我跟他没到要杀他的程度”里，有种奇怪的解脱感。"},
+      {k:"陆征的为人",w:["陆征的为人","陆征","人品","口碑"], dim:"N", t:"孙狩说：“陆征这个人，真正让人想杀他的，不是他的竞争对手，是他挡了谁的路。”这句话不像临时编的，像是他思考过很久。"},
+      {k:"挡了谁的路",w:["挡了谁的路","那句话","暗示","可疑的话"], dim:"N", t:"“挡了谁的路”——孙狩没有说“谁”，但你注意到他在说这句话的时候，手指在桌上用力按了一下又松开。他在控制自己不要说出那个名字。"},
+      {k:"铁线户外社",w:["铁线户外社","户外社","结构"], dim:"N", t:"你追问铁线户外社的业务结构，孙狩忽然闭上嘴。沉默了很久，然后说：“有些东西你们可以自己查，我不方便说。”"},
+      {k:"施压",     w:["施压","压力","逼问","加压"], dim:"T", t:"你继续加压，孙狩的情绪出现微小的波动——他在某个瞬间看向天花板，像是数了几秒才重新看你。你在战场上见过这种反应：人在决定“说不说实话”之前，会有一个短暂的空白。"},
+      {k:"微表情",   w:["微表情","肢体语言","动作"], dim:"N", t:"孙狩说“我不方便说”的时候，右手拇指在食指侧面反复刮了三下——这是自我安抚动作。他在害怕，但害怕的不是坐牢，而是说出某个名字。"},
+      {k:"通话记录", w:["通话记录","手机","恢复","技术室"], dim:"TRIGGER", to:4, t:"你正在犹豫要不要继续审孙狩的时候，手机震了。技术室发来一条消息：陆征的最后一通电话，被删除的号码恢复成功了。号码的归属地是M市，户主叫关震海。"}
+    ]
+  },
+  4:{
+    name:"④ 关氏冷链 · 冷库",
+    threshold:5,
+    advHint:"「跳过」或「收束」",
+    paras:[
+      "凌晨两点，关氏冷链物流仓库，M市郊区。",
+      "暴雨变成了冰粒，砸在铁皮屋顶上像撒了一把钉子。我蹲在仓库北侧的排水沟边，看着那辆厢式货车就停在装卸口——就是监控拍到的那辆。驾驶室的门半开着，副驾扔着一副溅了泥的登山靴。",
+      "手机又震了一下。技术室发来第二份比对结果：那副靴子的鞋底纹路，和凶案现场“来和回”的鞋印，完全吻合。",
+      "我抬头看了一眼仓库二楼。有一扇窗户亮着灯。",
+      "耳机里传来陈默的声音：“支援二十分钟到。你等还是进？”",
+      "我没有回答。冷库的氨气管道在冰粒里发出低沉的嗡嗡声，像是某种动物的呼吸。那扇亮着灯的窗户后面，有一个人影在移动。",
+      "然后我听见了另一声。",
+      "不是嗡鸣声。是人的喊声，从仓库北角传来的，闷闷的，被铁门堵住的那种：",
+      "“有没有人——救命——！”",
+      "是小满。今天白天在技术室整理关氏冷链出货单的那个实习生。",
+      "火是从装卸口内侧烧起来的。浓烟从仓库门缝里涌出来，冰粒打在黑烟上，像在翻炒一锅焦炭。",
+      "二楼的灯灭了。一个高大的黑影从装卸口里走出来，手里拎着一个汽油桶，头也不回地朝雨中走去。",
+      "你站在原地。那个人影正在走向围墙，再犹豫几秒，他就会消失在雨幕里。但铁门后面的咳嗽声越来越密。你只能带走一样东西：跟上去的机会，或者那扇门后面的人。你想查什么，就输入什么。"
+    ],
+    keywords:[
+      {k:"冷库",     w:["冷库","仓库","关氏冷链"], dim:"S", t:"关氏冷链物流仓库，M市北郊，建于九十年代。主库区三层，冻库在地下一层。氨气制冷系统老化严重，遇火有爆炸风险。"},
+      {k:"厢式货车", w:["厢式货车","车","货车","监控"], dim:"S", t:"监控拍到的“关氏冷链”厢式货车，车牌号M·A7314。副驾扔着一副溅了泥的登山靴，鞋底纹路与现场鞋印吻合。驾驶座上有未干的水渍。"},
+      {k:"鞋印比对", w:["鞋印比对","靴子","比对","确认"], dim:"S", t:"技术室把靴底纹路放大后做了三次比对，结论一致：这双靴子的磨损特征（中间深、两侧全新）与凶案现场的鞋印属于同一双。概率误差 < 0.3%。"},
+      {k:"氨气管线", w:["氨气管线","制冷","危险","爆炸"], dim:"S", t:"仓库的氨气制冷管道在墙体内侧，部分已锈蚀。一旦火势蔓延到主管线，整个仓库会在几分钟内变成毒气室。消防预案中标注过这个风险。"},
+      {k:"火",       w:["火","火场","火源","纵火"], dim:"S", t:"火从装卸口内侧燃起，蔓延速度不快但有大量黑烟。你闻到助燃剂的气味——像是汽油。这是人为纵火。"},
+      {k:"小满",     w:["小满","实习生","喊声","求救"], dim:"S", t:"技术室实习生，今天白天来整理关氏冷链的物流单据。她被反锁在仓库北角的休息间里，门是铁的，从外面被东西卡死了。烟雾已经开始从门缝灌进去。"},
+      {k:"关震海",   w:["关震海","黑影","汽油桶","凶手"], dim:"N", t:"那个高大的黑影从装卸口走出来，手里拎着汽油桶，头也不回地走进雨中。你只能看清他的轮廓：身高约一米八，肩宽，步伐沉稳。他扔掉汽油桶，朝东侧围墙走去。"},
+      {k:"追",       w:["追","抓","跟上","追凶","跟上去","嫌疑人"], dim:"FORK", fork:"T", t:"关震海走得很快但没跑。他不是在逃——他像是走完了一段路，该回家了。东侧围墙后面就是那片废弃的防火道。你选择跟上去。"},
+      {k:"救",       w:["救","门","破门","救人","小满怎么办"], dim:"FORK", fork:"F", t:"小满的喊声被火声吞没了大半。铁门卡死，需要外力才能打开。火势距离氨气管道还有约十米。你大概有……不到四分钟的时间。你选择了先撞那扇门。"},
+      {k:"潜",       w:["潜","摸进去","自己","独行","潜入","单干"], dim:"FORK", fork:"I", t:"你没有等陈默。你收拢自己，贴着仓库背光的阴影往里走。耳机里陈默的声音渐渐变小，世界只剩下你和那扇亮过灯的二楼窗户。"},
+      {k:"支援",     w:["支援","围住","等","等陈默","联动","围捕"], dim:"FORK", fork:"E", t:"你按住耳机：“陈默，网格，三个口。”支援到前，你让自己成为阵型里的一个点。你不是一个人进来的——是整张网一起推进的。"},
+      {k:"两难",     w:["两难","犹豫","选择","决定"], dim:"HOT", t:"你站在原地。那个人影正在走向围墙，再犹豫几秒，他就会消失在雨幕里。但铁门后面的咳嗽声越来越密。你只能选一个方向走。"},
+      {k:"冷库结构", w:["冷库结构","布局","平面图"], dim:"S", t:"仓库分三层：一层装卸区，二层管理办公室（灯亮着），地下一层冻库（零下十八度）。休息间在东北角。氨气主管道从一层贯穿至屋顶。"}
+    ]
+  },
+  5:{
+    name:"⑤ 结案 · 收束",
+    threshold:5,
+    advHint:"「跳过」结束本章",
+    paras:[
+      "——无论你当时走向了哪个方向，火最终是扑灭的，人也是被抓住的。只是代价不同。",
+      "关震海被铐上警车的时候，没有反抗。他坐在后排，头靠在车窗上，像是在等一个等了很久的结局。",
+      "结案清点他的保险柜时，技术员在里面找到了一个木盒。十六个格槽，里面只放了两样东西：两副塔罗牌。其中一副缺了一张。",
+      "缺的那张是「战车」。",
+      "陈默站在保险柜前看了那个盒子很久，忽然开口：",
+      "“这是第二副了。”",
+      "我看着他。",
+      "“六年前，有一桩无人认领的悬案，”陈默的声音很轻，“证物袋里也有一张塔罗牌。也是战车。”",
+      "他划开手机，翻出一张加密旧卷宗的照片。照片里的证物袋，静静地躺着一张「战车」。",
+      "我低头看着那个木盒。十六个格槽，只放了两个东西。一个是现在的关震海，一个是六年前的……",
+      "窗外的雪，在凌晨三点下得更大了。",
+      "案子到了该画句号的时候。报告就摊在桌上——你提笔，或是不提；木盒就摆在旁边。你想查什么，就输入什么。"
+    ],
+    keywords:[
+      {k:"结案",   w:["结案","定案","移交","报告","结案报告"], dim:"FORK", fork:"J", t:"关震海被移送，铁证如山。鞋印、汽油桶、死者掌面冻伤疤、物流记录，链状闭合，无空隙。公诉方认为证据链完整。该结的就结。"},
+      {k:"木盒",   w:["木盒","保险柜","盒子"], dim:"FORK", fork:"P", t:"十六个格槽，每个格槽都有轻微的使用痕迹——像是曾经放过什么东西，又被取走了。目前只放了：一副完整的塔罗牌（78张），另一副塔罗牌缺了“战车”。"},
+      {k:"塔罗牌", w:["塔罗牌","战车","牌"], dim:"FORK", fork:"P", t:"缺的那张「战车」，在塔罗牌中代表征服、胜利、但也是“压迫与控制”。陈默说这是“第二副了”——六年前，另一桩悬案的证物袋里，也有一张战车。"},
+      {k:"六年前", w:["六年前","悬案","旧卷宗"], dim:"FORK", fork:"P", t:"陈默翻出的加密旧卷宗：M市远郊，一具无名男尸，死法类似——被吊在废弃仓库里，现场留了一张塔罗牌。案子至今未破，因为死者身份无法确认。"},
+      {k:"编号十七",w:["编号十七","十七","刻字"], dim:"FORK", fork:"P", t:"技术员在木盒底部发现一行极细的手刻字：“17”。十六个格槽，编号却到了十七。还有一个格槽是空的。"},
+      {k:"陈默",   w:["陈默","组长","档案"], dim:"N", t:"陈默合上保险柜的门，说了一句你当时没听懂的话：“第一副牌的那个人，今年应该……出狱了。”他罕见地没有解释。"},
+      {k:"关震海", w:["关震海","真凶","真相","凶手"], dim:"N", t:"关震海，四十八岁，“铁线户外社”创始人，退役特种兵。他经营的“猎杀营”是一条地下产业链——向富人出售非法狩猎之旅，猎物包括濒危动物，也包括人。陆征查到了那批物流记录，给了他最后通牒。关震海没有收手。他把最得意的徒弟，变成了最骄傲的猎物。"},
+      {k:"猎杀营", w:["猎杀营","产业链","地下","非法狩猎"], dim:"N / T", t:"关震海的冷链物流里，有一批特殊货品——标注为“野味”，实际发往私人藏家。技术室在小满整理的那批单据里找到了完整的物流链。陆征就是因为查到这批货，才下了通牒。"},
+      {k:"证据链", w:["证据链","定罪","铁证"], dim:"T", t:"鞋印、汽油桶、物流单据、冻伤疤比对、监控录像。关震海零口供，但铁证足以定罪。公诉方建议无期徒刑。"},
+      {k:"小满",   w:["小满","最后","后来"], dim:"S", t:"小满在医院躺了四天后出院。她留在技术室的那批物流单据，成了关震海定罪的关键证据之一。她后来问过你一次：“师父，那天晚上，你犹豫过吗？”——你没有回答。"},
+      {k:"钩子",   w:["钩子","下一案","伏笔","预告"], dim:"N", t:"十六个格槽，只放了两样东西。还有十四个空的。"}
+    ]
+  }
+};
+const ADVANCE_CMDS = ["跳过","继续","收束","离开"];
+/* 每对维度取第一次输入（第一直觉）作为决策；重复输入保留审计、不重复计分 */
+const PAIR_OF = {E:"EI", I:"EI", T:"TF", F:"TF", J:"JP", P:"JP"};
+
+/* ============================================================
+   状态
+   ============================================================ */
+const SESSION = "m16_" + Math.random().toString(36).slice(2, 10);
+const LSKEY = "m16_case1_state_v1";
+/* ============================================================
+   线上收集配置（可留空：留空则纯本地、不上报）
+   1) 在腾讯云云开发 CloudBase 建好环境后，把环境 ID 粘到 env：
+      控制台 → 云开发 → 环境总览 → 环境ID（形如 my-m16-xxxx）
+   2) 需开启：身份认证→匿名登录；云数据库建集合 case1_submissions
+   3) 安全域名：把部署域名（*.tcloudbaseapp.com）加到
+      环境 → 安全 → Web 安全域名
+   建库/权限/域名清单见 design/cloudbase_setup.md
+   ============================================================ */
+const CLOUDBASE = {
+  env: "m16-d6gov9wyg2fca187b",   // ← 云开发环境 ID
+  table: "case1_submissions",
+  page: "case1_huntingcamp_v1.2"
+};
+const hasCloudbase = () => !!CLOUDBASE.env;
+const SDK_CDN = "https://static.cloudbase.net/cloudbase-js-sdk/latest/cloudbase.full.js";
+let state = {
+  scene: 1, seq: 0, finished: false,
+  sceneEntry: Date.now(),
+  explored: {},   // scene -> Set of explored keys
+  log: [],        // behavior log entries
+  hidden: [],     // hidden fork choices（每对维度仅首条）
+  forkPairs: []   // 已计分的维度对
+};
+let chipsRendered = [];
+
+/* ============================================================
+   工具
+   ============================================================ */
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function rich(s){
+  s = esc(s);
+  s = s.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+  s = s.replace(/\*(.+?)\*/g, "<i>$1</i>");
+  return s;
+}
+function nowISO(){ return new Date().toISOString(); }
+function sceneEntryDur(){
+  const d = Math.round((Date.now() - state.sceneEntry) / 1000);
+  state.sceneEntry = Date.now();
+  return d;
+}
+function sceneDef(n){ return SCENES[n]; }
+
+/* ============================================================
+   词库匹配（先精确，后子串；分叉/触发词只走精确）
+   ============================================================ */
+function findMatch(raw, sceneNum){
+  const kws = SCENES[sceneNum].keywords;
+  const norm = raw.trim();
+  if(!norm) return null;
+  let hit = null;
+  for(const kw of kws){
+    if(kw.w.some(v => v === norm)){ hit = kw; break; }
+  }
+  if(hit) return hit;
+  if(norm.length >= 2){
+    for(const kw of kws){
+      if(kw.dim === "FORK" || kw.dim === "TRIGGER" || kw.dim === "HOT") continue;
+      if(kw.w.some(v => v.length >= 2 && v.indexOf(norm) !== -1)){ hit = kw; break; }
+    }
+  }
+  return hit;
+}
+
+/* ============================================================
+   行为日志
+   ============================================================ */
+function pushLog(entry){
+  state.seq++;
+  entry.sequence = state.seq;
+  entry.session_id = SESSION;
+  entry.timestamp = nowISO();
+  state.log.push(entry);
+  renderDev();
+  submitEntry(entry);
+}
+
+function recordInput(raw, matchedKey, sceneNum, forkChoice, forkTyped){
+  pushLog({
+    scene: sceneNum,
+    input_word: raw,
+    matched_key: matchedKey || null,
+    scene_duration: sceneEntryDur(),
+    skipped: false,
+    hidden_choice: forkChoice || "",
+    fork_typed: forkTyped || ""
+  });
+}
+
+function recordSkip(raw, sceneNum){
+  pushLog({
+    scene: sceneNum,
+    input_word: raw,
+    matched_key: "SKIP",
+    scene_duration: sceneEntryDur(),
+    skipped: true,
+    hidden_choice: ""
+  });
+}
+
+/* ============================================================
+   渲染
+   ============================================================ */
+const stream = document.getElementById("stream");
+function sceneTrackHtml(){
+  const names = ["① 现场","② 办公室","③ 审讯室","④ 冷库","⑤ 收束"];
+  return names.map((n,i)=>
+    `<span class="${i+1===state.scene?"on":(i+1<state.scene?"done":"")}">${n}</span>`
+  ).join(" · ");
+}
+function renderSceneTrack(){
+  document.getElementById("scene-track").innerHTML = sceneTrackHtml();
+}
+function appendScene(num){
+  const d = sceneDef(num);
+  const div = document.createElement("div");
+  div.innerHTML = `<div class="scene-head">${esc(d.name)}</div>` +
+    d.paras.map(p=>`<div class="p">${rich(p)}</div>`).join("");
+  stream.appendChild(div);
+}
+function appendKw(kw, raw){
+  const div = document.createElement("div");
+  div.className = "kw-block";
+  div.innerHTML = `<div class="w">你查了「${esc(kw.k)}」</div><div>${rich(kw.t)}</div>`;
+  stream.appendChild(div);
+  scrollToBottom();
+}
+function appendMiss(raw, suggestions){
+  const div = document.createElement("div");
+  div.className = "miss";
+  div.innerHTML = `没有找到关于「${esc(raw)}」的直接线索。这一处你还能查：${suggestions.map(s=>esc(s)).join("、")}。`;
+  stream.appendChild(div);
+  scrollToBottom();
+}
+function appendNudge(sceneNum){
+  const adv = sceneDef(sceneNum).advHint;
+  const div = document.createElement("div");
+  div.className = "nudge";
+  div.innerHTML = `（这一处的线索摸得差不多了。想往下走，输入 ${esc(adv)}。）`;
+  stream.appendChild(div);
+  scrollToBottom();
+}
+function appendTheEnd(){
+  const div = document.createElement("div");
+  div.innerHTML = `<div class="theend">第一案 · 完</div>
+    <div class="p" style="text-align:center;color:var(--dim);font-size:13px;">
+    凶手只有一个人：关震海。前三个嫌疑人——赵远山的旧伤、钱冬青的血恐惧、孙狩的体重——都是烟雾。<br>
+    木盒里十六个格槽还空着十四个。而你今天的每一次输入、每一个选择，都已静默存档。</div>`;
+  stream.appendChild(div);
+  scrollToBottom();
+}
+function scrollToBottom(){
+  requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight, behavior:"smooth"}));
+}
+
+/* 建议词 chips */
+function renderChips(){
+  const scene = sceneDef(state.scene);
+  const box = document.getElementById("chips");
+  box.innerHTML = "";
+  const explored = state.explored[state.scene] || new Set();
+  const suggestions = scene.keywords
+    .filter(kw => !explored.has(kw.k))
+    .filter(kw => kw.dim !== "TRIGGER" && kw.dim !== "FORK" && kw.dim !== "HOT")
+    .map(kw => kw.w[0]);
+  suggestions.forEach(word => {
+    const b = document.createElement("button");
+    b.className = "chip";
+    b.textContent = word;
+    b.onclick = ()=> handleInput(word);
+    box.appendChild(b);
+  });
+  const skip = document.createElement("button");
+  skip.className = "chip skip";
+  skip.textContent = "跳过";
+  skip.onclick = ()=> handleInput("跳过");
+  box.appendChild(skip);
+}
+function renderDev(){
+  const pre = document.getElementById("devlog");
+  pre.textContent = JSON.stringify(state.log, null, 1);
+  document.getElementById("sessionId").textContent = "session: " + SESSION;
+  const sync = document.getElementById("syncStatus");
+  if(!hasCloudbase()){ sync.textContent = "● 本地模式（未配置 CloudBase）"; sync.style.color = "#7a8494"; }
+  else{ sync.textContent = "● CloudBase 收集已开启 · 待传 " + syncQueue.length; sync.style.color = "#9fd6a0"; }
+  renderProfile();
+}
+function renderProfile(){
+  const el = document.getElementById("profile");
+  const hidden = state.hidden;
+  const count = arr => arr.reduce((o,c)=>{o[c]= (o[c]||0)+1; return o;},{});
+  const c = count(hidden.map(h=>h.choice));
+  const perception = {S:0, N:0};
+  state.log.forEach(e=>{
+    if(e.skipped || !e.matched_key) return;
+    const kw = findKeyByName(e.matched_key, e.scene);
+    if(!kw || kw.dim==="FORK" || kw.dim==="TRIGGER" || kw.dim==="HOT") return;
+    if(kw.dim.indexOf("S")!==-1) perception.S++;
+    if(kw.dim.indexOf("N")!==-1) perception.N++;
+  });
+  const pick = (a,b)=> (c[a]||0) > (c[b]||0) ? a+"·"+b : (c[b]||0) > (c[a]||0) ? b+"·"+a : (a+"·"+b)+"(平)";
+  const parts = [];
+  if(c.E||c.I) parts.push("行动 E/I："+pick("E","I"));
+  if(c.T||c.F) parts.push("干预 T/F："+pick("T","F"));
+  if(c.J||c.P) parts.push("收束 J/P："+pick("J","P"));
+  parts.push("感知 S/N："+perception.S+" : "+perception.N);
+  el.innerHTML = parts.length
+    ? parts.map(p=>`<div><b>${p}</b></div>`).join("")
+    : "<div style='color:var(--dim)'>尚未采集到足量数据。</div>";
+}
+function findKeyByName(name, sceneNum){
+  return SCENES[sceneNum] && SCENES[sceneNum].keywords.find(k=>k.k===name) || null;
+}
+
+/* ============================================================
+   主交互
+   ============================================================ */
+function handleInput(raw){
+  const word = raw.trim();
+  if(!word || state.finished) return;
+
+  if(ADVANCE_CMDS.indexOf(word) !== -1){
+    recordSkip(word, state.scene);
+    advanceScene();
+    return;
+  }
+
+  const sceneNum = state.scene;
+  const kw = findMatch(word, sceneNum);
+
+  if(!kw){
+    recordInput(word, null, sceneNum, "");
+    const explored = state.explored[sceneNum] || new Set();
+    const sugg = sceneDef(sceneNum).keywords.filter(k=>!explored.has(k.k) && k.dim!=="TRIGGER").map(k=>k.w[0]).slice(0,4);
+    appendMiss(word, sugg);
+    renderChips();
+    return;
+  }
+
+  const explored = state.explored[sceneNum] || (state.explored[sceneNum]=new Set());
+  explored.add(kw.k);
+
+  let fork = "", forkTyped = "";
+  if(kw.dim === "FORK"){
+    forkTyped = kw.fork;
+    const pair = PAIR_OF[kw.fork];
+    if(!state.forkPairs.includes(pair)){
+      state.forkPairs.push(pair);
+      fork = kw.fork; // 首条决策才计分
+      state.hidden.push({choice:fork, input_word:word, scene:sceneNum, key:kw.k, ts:nowISO()});
+    }
+  }
+
+  recordInput(word, kw.k, sceneNum, fork, forkTyped);
+  appendKw(kw, word);
+
+  if(kw.dim === "TRIGGER" && kw.to){
+    setTimeout(()=>advanceScene(kw.to), 600);
+    return;
+  }
+  renderChips();
+
+  const scene = sceneDef(sceneNum);
+  if(explored.size >= scene.threshold && !state.sceneNudged){
+    state.sceneNudged = true;
+    appendNudge(sceneNum);
+  }
+}
+
+function advanceScene(to){
+  const next = to || (state.scene + 1);
+  sceneEntryDur();
+  state.sceneNudged = false;
+  if(next > 5){
+    state.finished = true;
+    appendTheEnd();
+    persist();
+    renderChips();
+    submitFinish();
+    return;
+  }
+  state.scene = next;
+  appendScene(next);
+  renderSceneTrack();
+  renderChips();
+  persist();
+  scrollToBottom();
+}
+
+/* ============================================================
+   持久化 / 导出 / 重置
+   ============================================================ */
+function persist(){
+  try{
+    const explored = {};
+    Object.keys(state.explored).forEach(s=>explored[s]=[...state.explored[s]]);
+    localStorage.setItem(LSKEY, JSON.stringify({
+      session:SESSION, scene:state.scene, seq:state.seq, finished:state.finished,
+      explored, log:state.log, hidden:state.hidden, forkPairs:state.forkPairs, stream:stream.innerHTML
+    }));
+  }catch(e){}
+}
+function tryRestore(){
+  let saved=null;
+  try{ saved = JSON.parse(localStorage.getItem(LSKEY)||"null"); }catch(e){}
+  if(saved && saved.session === SESSION){ /* 同页刷新才恢复 */ }
+  if(saved && saved.stream && confirm("检测到上次未完成的进度，是否继续？")){
+    state.scene=saved.scene; state.seq=saved.seq; state.finished=saved.finished;
+    state.log=saved.log||[]; state.hidden=saved.hidden||[]; state.forkPairs=saved.forkPairs||[];
+    state.explored={};
+    (saved.explored||{}).forEach ? Object.keys(saved.explored||{}).forEach(s=>state.explored[s]=new Set(saved.explored[s])) : 0;
+    stream.innerHTML = saved.stream;
+    renderSceneTrack(); renderChips(); renderDev();
+    scrollToBottom();
+    return true;
+  }
+  return false;
+}
+function exportLog(){
+  const data = {
+    session_id: SESSION,
+    exported_at: nowISO(),
+    log: state.log,
+    hidden_forks: state.hidden,
+    summary: summarize()
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "m16_case1_"+SESSION+".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function summarize(){
+  const c = state.hidden.reduce((o,h)=>{o[h.choice]=(o[h.choice]||0)+1;return o;},{});
+  return {hidden_fork_counts:c, total_inputs:state.log.length, skips:state.log.filter(e=>e.skipped).length};
+}
+function resetAll(){
+  if(!confirm("清空当前进度并重新开始？")) return;
+  localStorage.removeItem(LSKEY);
+  location.reload();
+}
+
+/* ============================================================
+   线上结果上报（云开发 CloudBase，队列持久化防丢）
+   ============================================================ */
+const PK_LS = "m16_case1_pending";
+let syncQueue = [];
+let syncBusy = false;
+let cbApp = null, cbDb = null;
+
+function loadCbScript(){
+  return new Promise((resolve, reject)=>{
+    const s = document.createElement("script");
+    s.src = SDK_CDN;
+    s.onload = ()=>resolve();
+    s.onerror = ()=>{ console.warn("[m16] 云开发 SDK CDN 加载失败"); reject(new Error("cdn")); };
+    document.head.appendChild(s);
+  });
+}
+async function ensureCb(){
+  if(cbDb) return cbDb;
+  if(typeof cloudbase === "undefined"){
+    try{ await loadCbScript(); }catch(e){ return null; }
+  }
+  if(typeof cloudbase === "undefined") return null;
+  cbApp = cloudbase.init({ env: CLOUDBASE.env });
+  await cbApp.auth({ persistence: "local" }).signInAnonymously()
+    .catch(e=> console.warn("[m16] 匿名登录失败（请开启环境匿名登录）", e));
+  cbDb = cbApp.database();
+  return cbDb;
+}
+function saveQueue(){
+  try{ localStorage.setItem(PK_LS, JSON.stringify(syncQueue)); }catch(e){}
+}
+function loadQueue(){
+  try{
+    const raw = localStorage.getItem(PK_LS);
+    if(raw) syncQueue = JSON.parse(raw) || [];
+  }catch(e){}
+}
+async function pump(){
+  if(syncBusy || !hasCloudbase() || syncQueue.length === 0) return;
+  syncBusy = true;
+  while(syncQueue.length > 0){
+    const row = syncQueue.shift();
+    try{
+      const db = await ensureCb();
+      if(!db){ syncQueue.unshift(row); break; }
+      await db.collection(CLOUDBASE.table).add(Object.assign({}, row, { _createdAt: db.serverDate() }));
+      saveQueue();
+    }catch(err){
+      console.warn("[m16] 上报失败（稍后重试）", err);
+      syncQueue.unshift(row);
+      break;
+    }
+  }
+  syncBusy = false;
+  renderDev();
+}
+function submitEntry(entry){
+  if(!hasCloudbase()) return;   // 未配置则纯本地
+  let ev = entry.event_type;
+  if(!ev){
+    ev = entry.skipped ? "skip" : (entry.hidden_choice ? "fork" : "input");
+  }
+  const row = {
+    session_id: entry.session_id || SESSION,
+    page: CLOUDBASE.page,
+    event_type: ev,
+    scene: entry.scene,
+    sequence: entry.sequence,
+    input_word: entry.input_word,
+    matched_key: entry.matched_key || null,
+    scene_duration: entry.scene_duration || 0,
+    skipped: !!entry.skipped,
+    hidden_choice: entry.hidden_choice || "",
+    fork_typed: entry.fork_typed || ""
+  };
+  syncQueue.push(row);
+  saveQueue();
+  pump();
+}
+function submitFinish(){
+  submitEntry({event_type:"finish", scene:5, sequence:0, input_word:"__FINISH__", hidden_choice:""});
+}
+
+/* ============================================================
+   启动
+   ============================================================ */
+function boot(){
+  const input = document.getElementById("input");
+  input.addEventListener("keydown", e=>{
+    if(e.key === "Enter"){ handleInput(input.value); input.value=""; }
+  });
+  if(tryRestore()){ loadQueue(); pump(); return; }
+  document.getElementById("sessionId").textContent = "session: " + SESSION;
+  appendScene(1);
+  renderSceneTrack();
+  renderChips();
+  renderDev();
+  loadQueue();
+  pump();
+  scrollToBottom();
+}
+boot();
+</script>
+</body>
+</html>

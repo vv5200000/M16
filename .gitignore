@@ -1,0 +1,15 @@
+# 系统/临时
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.log
+
+# 本地运行产物
+node_modules/
+dist/
+*.local
+
+# 敏感配置（如确有真实密钥时放入此文件，勿提交；当前项目无密钥）
+# .env
+# *.key
+# *.pem
