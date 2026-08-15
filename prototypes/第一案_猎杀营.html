@@ -53,6 +53,24 @@
     padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-family:inherit;}
   .devrow button:hover{border-color:var(--accent);}
   #profile b{color:var(--accent2);}
+
+  /* ===== 气氛：幕卡 / 徽章 / 音频 ===== */
+  #illus{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;
+    margin:0 0 16px;position:relative;}
+  #illus svg{display:block;width:100%;height:auto;}
+  .synth{position:relative;background:linear-gradient(120deg,#1c1a14,#201b12);border:1px solid var(--accent2);
+    border-radius:8px;padding:10px 12px;margin:12px 0;}
+  .synth .badge{position:absolute;top:-9px;right:8px;background:var(--accent2);color:#12100c;
+    font-size:11px;font-weight:bold;padding:1px 8px;border-radius:10px;letter-spacing:1px;}
+  .synth .t{color:var(--accent2);font-size:12px;letter-spacing:1px;margin-bottom:6px;}
+  .synth.flash{animation:synthIn .6s ease;}
+  @keyframes synthIn{0%{transform:scale(.96);opacity:0;}60%{transform:scale(1.01);}100%{transform:scale(1);opacity:1;}}
+  .soundbar{position:fixed;right:16px;bottom:16px;z-index:50;text-align:right;}
+  .soundbar .mood{display:block;font-size:11px;color:var(--dim);margin-bottom:4px;letter-spacing:1px;}
+  .soundbar button{background:var(--panel);border:1px solid var(--line);color:var(--ink);
+    padding:6px 12px;border-radius:20px;cursor:pointer;font-size:12px;font-family:inherit;}
+  .soundbar button:hover{border-color:var(--accent);}
+  .soundbar button.off{opacity:.55;text-decoration:line-through;}
 </style>
 </head>
 <body>
@@ -62,6 +80,7 @@
     <p class="sub">关键词交互 · 无痕投射原型 · 开发者版 v1.2（CloudBase 线上收集 / 本地离线可用）</p>
   </header>
   <div id="scene-track"></div>
+  <div id="illus"></div>
   <div id="stream"></div>
   <details class="dev">
     <summary>开发者面板（行为日志 / 隐性分叉 / 档案）</summary>
@@ -85,6 +104,7 @@
     <div id="chips"></div>
   </div>
 </div>
+<div class="soundbar"><span class="mood" id="moodLabel"></span><button id="soundbtn" onclick="toggleSound()">♪ 环境音 · 静</button></div>
 
 <script>
 "use strict";
@@ -244,6 +264,34 @@ const SCENES = {
     ]
   }
 };
+/* ============================================================
+   升级数据层：场景插画 / 疑点钩子链 / 线索合成 / 终章镜头变体
+   ============================================================ */
+const ILLUS = {
+  1: '<svg viewBox="0 0 780 240" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="fog1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#141b26"/><stop offset="1" stop-color="#2a3440"/></linearGradient></defs><rect width="780" height="240" fill="url(#fog1)"/><path d="M0 200 Q 195 120 390 190 T 780 170 L780 240 L0 240 Z" fill="#0a0e14" opacity=".7"/><circle cx="620" cy="70" r="34" fill="#c8a06a" opacity=".35"/><circle cx="620" cy="70" r="50" fill="none" stroke="#c8a06a" stroke-opacity=".25"/><path d="M0 210 Q 195 150 390 205 T 780 190" stroke="#4a5568" stroke-width="1.5" fill="none"/><rect x="300" y="140" width="60" height="70" rx="4" fill="none" stroke="#5b6779" stroke-width="1.5"/><path d="M320 150 q 10 -18 20 0" stroke="#5b6779" stroke-width="1.5" fill="none"/><text x="330" y="195" fill="#5b6779" font-size="34" text-anchor="middle">猎</text></svg>',
+  2: '<svg viewBox="0 0 780 240" xmlns="http://www.w3.org/2000/svg"><rect width="780" height="240" fill="#11161f"/><rect x="150" y="40" width="480" height="160" rx="4" fill="#0a0d12" stroke="#2a313c"/><line x1="190" y1="80" x2="600" y2="80" stroke="#2a313c"/><text x="200" y="120" fill="#8fa8c8" font-size="20">一 · 行程改道</text><text x="200" y="150" fill="#5b6779" font-size="16">二 · 老猎人</text><text x="200" y="180" fill="#5b6779" font-size="16">三 · 茶寮背弓客</text><path d="M90 200 q 60 -30 120 0" stroke="#2a313c" fill="none" stroke-width="3"/><path d="M150 200 q 60 -30 120 0" stroke="#2a313c" fill="none" stroke-width="3" stroke-dasharray="4 6"/></svg>',
+  3: '<svg viewBox="0 0 780 240" xmlns="http://www.w3.org/2000/svg"><rect width="780" height="240" fill="#17110d"/><path d="M40 60 h60 M40 90 h60 M40 120 h60 M40 150 h60 M40 180 h60" stroke="#5b3b24" stroke-width="6"/><circle cx="70" cy="60" r="5" fill="#c8a06a" opacity=".6"/><circle cx="70" cy="90" r="5" fill="#c8a06a" opacity=".6"/><circle cx="70" cy="120" r="5" fill="#c8a06a" opacity=".6"/><circle cx="70" cy="150" r="5" fill="#c8a06a" opacity=".6"/><path d="M620 210 q 60 -160 0 -190" stroke="#8a6a4a" stroke-width="8" fill="none"/><path d="M590 210 q 70 -140 30 -200" stroke="#4a5568" stroke-width="3" fill="none" stroke-dasharray="3 5"/><text x="600" y="60" fill="#5b6779" font-size="26" text-anchor="middle">弓</text></svg>',
+  4: '<svg viewBox="0 0 780 240" xmlns="http://www.w3.org/2000/svg"><rect width="780" height="240" fill="#0e141f"/><path d="M0 90 q 195 -40 390 10 t 390 -20" stroke="#3b4252" stroke-width="2" fill="none" opacity=".5"/><path d="M0 130 q 195 -40 390 10 t 390 -20" stroke="#2a313c" stroke-width="2" fill="none" opacity=".5"/><path d="M420 220 q -60 -130 -60 -190" stroke="#8a6a4a" stroke-width="9" fill="none"/><line x1="352" y1="40" x2="428" y2="240" stroke="#c8a06a" stroke-width="2"/><ellipse cx="500" cy="190" rx="26" ry="16" fill="#3b4252"/><circle cx="500" cy="162" r="12" fill="#3b4252"/><path d="M470 190 q 30 16 60 0 l 6 26 q -30 12 -60 0 Z" fill="#3b4252"/><line x1="386" y1="52" x2="500" y2="162" stroke="#5b6779" stroke-dasharray="3 4"/><circle cx="386" cy="52" r="3" fill="#c8a06a"/></svg>',
+  5: '<svg viewBox="0 0 780 240" xmlns="http://www.w3.org/2000/svg"><rect width="780" height="240" fill="#14161c"/><rect x="250" y="70" width="280" height="120" rx="6" fill="#0c0f14" stroke="#5b6779"/><line x1="270" y1="100" x2="430" y2="100" stroke="#2a313c"/><line x1="270" y1="130" x2="380" y2="130" stroke="#2a313c"/><line x1="270" y1="160" x2="330" y2="160" stroke="#2a313c"/><rect x="440" y="110" width="70" height="40" rx="3" fill="#1c1a14" stroke="#c8a06a"/><text x="475" y="136" fill="#c8a06a" font-size="18" text-anchor="middle">愚</text><rect x="150" y="180" width="480" height="3" fill="#2a313c"/><text x="390" y="215" fill="#5b6779" font-size="16" text-anchor="middle">给六年前的我</text></svg>'
+};
+const HOOKS = [
+  "死者是怎么被放成这种姿势的——像一件被摆正的陈列品。",
+  "那张卡片上的「猎」字印，出自山里还在用的老墨器——谁还在用？",
+  "他的弦，是复合弓烃——和死者颈侧挑出的那根断弦，完全对得上。",
+  "下一个猎物已经进了野林。弓在雾里端平了——你先顾哪个方向？",
+  "报告差一个签字，信还没拆，第一格木盒空着——收网，还是留着那道口子？"
+];
+const SYNTHESES = [
+  {id:"s1", need:["弓弦","购弓记录"], badge:"弦源锁定", t:"旧式猎弓改造的弦，与死者颈侧挑出的断弦材质完全吻合。技术官小满在对比表上打了个勾：是同一根。这把弓，就在某个人背上。", hint:"弓弦 → 购弓记录"},
+  {id:"s2", need:["猎","卡片"], badge:"仪式标记", t:"「猎」字卡片、油墨盖印、圆形的清场空地——这是一套仪式。有人在给每一件“作品”盖章，像猎手给猎物挂上自己的标记。", hint:"猎 → 卡片"},
+  {id:"s3", need:["金毛","信"], badge:"六年前的线", t:"金毛骨灰挂在陶叔颈上，而帆布包里压着收件人“给六年前的我”的旧信。他放不下的不是杀戮，是那只狗，和六年前某个没写完的夜晚。", hint:"金毛 → 信"}
+];
+/* 终章镜头变体：按 E/I · T/F · J/P 首决策切换叙述镜头（真凶不变） */
+const ENDING_LENS = {
+  EI:{E:"整片林场的围网在你身后合拢，收网的动作是由许多人一起完成的。", I:"是你独自走进那片雾，在弓弦响之前伸手拦下了整件事——他们赶到时，你已经站在雾里了。"},
+  TF:{T:"他们先锁住的是那张弓。等女孩和金毛被带出来时，猎手已经没有还手的余地了。", F:"他们先把女孩和金毛带出了野林。女孩安全之后，猎手才在雾里慢慢放下了弓。"},
+  JP:{J:"你签下了那个字。案子收了尾，十五格木盒的空位依旧空着——但那封信，你一直没舍得扔。", P:"你留下了那道口子。木盒第一格没有合上，那摞信被送去了技术科——有些东西，不是你不看，它就不存在。"}
+};
 const ADVANCE_CMDS = ["跳过","继续","收束","离开"];
 /* 每对维度取第一次输入（第一直觉）作为决策；重复输入保留审计、不重复计分 */
 const PAIR_OF = {E:"EI", I:"EI", T:"TF", F:"TF", J:"JP", P:"JP"};
@@ -273,6 +321,7 @@ let state = {
   scene: 1, seq: 0, finished: false,
   sceneEntry: Date.now(),
   explored: {},   // scene -> Set of explored keys
+  synths: [],     // unlocked synthesis ids
   log: [],        // behavior log entries
   hidden: [],     // hidden fork choices（每对维度仅首条）
   forkPairs: []   // 已计分的维度对
@@ -373,6 +422,10 @@ function appendScene(num){
   div.innerHTML = `<div class="scene-head">${esc(d.name)}</div>` +
     d.paras.map(p=>`<div class="p">${rich(p)}</div>`).join("");
   stream.appendChild(div);
+  renderIllus();
+  applyAtmo();
+  applyMood();
+  playSting("scene");
 }
 function appendKw(kw, raw){
   const div = document.createElement("div");
@@ -403,10 +456,157 @@ function appendTheEnd(){
     凶手是陶叔——“猎豹”，一张以猎杀为面具的脸。前三个嫌疑人，都只是他留在局面的烟雾。<br>
     木盒里十六个格位，只收进了一格；其余十五个空位，指向更远的下一案。而你今天的每一次输入、每一个选择，都已静默存档。</div>`;
   stream.appendChild(div);
+  renderEndingLens();
+  playSting("end");
   scrollToBottom();
 }
 function scrollToBottom(){
   requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight, behavior:"smooth"}));
+}
+
+/* ============================================================
+   升级渲染：证据板 / 木盒 / 钩子 / 插画 / 合成 / 音频 / 变体结局
+   ============================================================ */
+function allExplored(){
+  const out = [];
+  Object.keys(state.explored).forEach(s=>{
+    state.explored[s].forEach(k=>out.push({scene:+s, key:k}));
+  });
+  return out;
+}
+function isExplored(key){
+  for(const s in state.explored){ if(state.explored[s].has(key)) return true; }
+  return false;
+}
+function unlocked(id){ return state.synths.indexOf(id) !== -1; }
+/* 幕卡：每场景切换时一张叙事插画卡（保留主视觉，去掉常驻面板） */
+function renderIllus(){
+  const el = document.getElementById("illus");
+  el.innerHTML = ILLUS[state.scene] || "";
+}
+function renderHooks(){}
+function renderClues(){}
+function renderWoodbox(){}
+function renderBoard(){
+  renderIllus(); applyAtmo();
+}
+function checkSynthesis(){
+  for(let i=0;i<SYNTHESES.length;i++){
+    const s = SYNTHESES[i];
+    if(unlocked(s.id)) continue;
+    if(s.need.every(k=>isExplored(k))){
+      state.synths.push(s.id);
+      appendSynth(s);
+      persist();
+    }
+  }
+}
+function appendSynth(s){
+  const div = document.createElement("div");
+  div.className = "synth flash";
+  div.innerHTML = `<span class="badge">${esc(s.badge)}</span>
+    <div class="t">${esc(s.hint)} → 合成了新线索</div>
+    <div>${rich(s.t)}</div>`;
+  stream.appendChild(div);
+  pushLog({scene:state.scene, input_word:"__SYNTH__:"+s.badge, matched_key:s.id,
+    scene_duration:0, skipped:false, hidden_choice:"", fork_typed:"", event_type:"synthesis"});
+  playSting("synth");
+  scrollToBottom();
+}
+/* 场景氛围底色（随场景切换的渐变） */
+const ATMO = {
+  1:"linear-gradient(160deg,#0d141f 0%,#1a232f 55%,#11151c 100%)",
+  2:"linear-gradient(160deg,#0e121a 0%,#171d28 60%,#0e121a 100%)",
+  3:"linear-gradient(160deg,#17110d 0%,#241a12 60%,#17110d 100%)",
+  4:"linear-gradient(160deg,#0a111c 0%,#152134 60%,#0a111c 100%)",
+  5:"linear-gradient(160deg,#10141c 0%,#1a1f2a 60%,#10141c 100%)"
+};
+function applyAtmo(){
+  document.body.style.background = ATMO[state.scene] || "";
+}
+/* 环境音：Web Audio 合成（无外部文件）——按场景切换情绪垫底 + 关键时刻短音色 */
+let audio=null, audioOn=false, master=null, droneNodes=[];
+/* 每场景一段主音偏低频，情绪随叙事推进变暗变沉 */
+const MOODS = {
+  1:{fwd:[55,82.5,110], gain:0.16, name:"雾野 · 低"},
+  2:{fwd:[49,73.5,98],  gain:0.13, name:"会议室 · 沉"},
+  3:{fwd:[82,110,130.8],gain:0.18, name:"猎人铺 · 蚋"},
+  4:{fwd:[36.7,55,73.5],gain:0.20, name:"大雪坳 · 压"},
+  5:{fwd:[55,73.5,110], gain:0.15, name:"收网 · 释"}
+};
+let curSceneMood=-1;
+function ensureAudio(){
+  if(audio) return;
+  try{ audio = new (window.AudioContext||window.webkitAudioContext)(); }
+  catch(e){ return; }
+  master = audio.createGain(); master.gain.value=0; master.connect(audio.destination);
+}
+function setMood(scene){
+  if(!audio) return;
+  const m = MOODS[scene] || MOODS[1];
+  const t = audio.currentTime;
+  if(curSceneMood===scene && droneNodes.length) return;
+  curSceneMood=scene;
+  droneNodes.forEach(o=>{ try{o.stop();}catch(e){} });
+  droneNodes = [];
+  const nc = audio.createGain(); nc.gain.value=0; nc.connect(master);
+  const ratio = 1/ m.fwd.length;
+  m.fwd.forEach(f=>{
+    const o=audio.createOscillator(); o.type="sine"; o.frequency.value=f;
+    const g=audio.createGain(); g.gain.value=m.gain*ratio;
+    o.connect(g); g.connect(nc);
+    o.start(t); droneNodes.push(o);
+    g.gain.linearRampToValueAtTime(0, t+2.4); // 淡出后靠下一次刷新
+  });
+  if(audioOn) master.gain.setTargetAtTime(0.5, t, 0.8);
+  const lbl=document.getElementById("moodLabel");
+  if(lbl) lbl.textContent = "此刻："+m.name;
+}
+function applyMood(){ setMood(state.scene); }
+function playSting(kind){
+  if(!audio || !audioOn) return;
+  const t=audio.currentTime;
+  const sng=(f,a,st)=>{  // sng = single note
+    const o=audio.createOscillator(); o.type="triangle"; o.frequency.value=f;
+    const g=audio.createGain(); g.gain.value=0; g.gain.setValueAtTime(0,t+st);
+    g.gain.linearRampToValueAtTime(a, t+st+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+st+0.8);
+    o.connect(g); g.connect(master); o.start(t+st); o.stop(t+st+0.9);
+  };
+  if(kind==="synth"){ [220,330,440].forEach((f,i)=>sng(f,0.12,i*0.12)); }
+  else if(kind==="end"){ [110,146.83,220,330].forEach((f,i)=>sng(f,0.10,i*0.2)); }
+  else if(kind==="scene"){ sng(98,0.1,0); sng(123.47,0.09,0.25); }
+}
+function toggleSound(){
+  ensureAudio();
+  if(!audio) return;
+  audioOn = !audioOn;
+  if(audio.state==="suspended") audio.resume();
+  if(audioOn && droneNodes.length===0) applyMood();
+  master.gain.setTargetAtTime(audioOn?0.22:0, audio.currentTime, 0.6);
+  const b=document.getElementById("soundbtn");
+  if(b){ b.textContent = audioOn?"♪ 环境音 · 开":"♪ 环境音 · 静"; b.classList.toggle("off",!audioOn); }
+}
+/* 终章变体：根据首决策镜头 */
+function endingLensLines(){
+  const c = {};
+  state.hidden.forEach(h=>{ c[h.choice]=h.choice; });
+  const lines=[];
+  const pick=(A,B)=> (c[A]?A:(c[B]?B:null));
+  const ei = pick("E","I"); if(ei) lines.push(ENDING_LENS.EI[ei]);
+  const tf = pick("T","F"); if(tf) lines.push(ENDING_LENS.TF[tf]);
+  const jp = pick("J","P"); if(jp) lines.push(ENDING_LENS.JP[jp]);
+  return lines;
+}
+function renderEndingLens(){
+  const arr = endingLensLines();
+  if(!arr.length) return;
+  const div = document.createElement("div");
+  div.className = "synth";
+  div.innerHTML = `<div class="t">收束 · 你的镜头</div>` +
+    arr.map(rich).map((x,i)=>`<div class="p">${x}</div>`).join("");
+  stream.appendChild(div);
+  scrollToBottom();
 }
 
 /* 建议词 chips */
@@ -509,6 +709,8 @@ function handleInput(raw){
 
   recordInput(word, kw.k, sceneNum, fork, forkTyped);
   appendKw(kw, word);
+  checkSynthesis();
+  renderClues();
 
   if(kw.dim === "TRIGGER" && kw.to){
     setTimeout(()=>advanceScene(kw.to), 600);
@@ -552,7 +754,7 @@ function persist(){
     Object.keys(state.explored).forEach(s=>explored[s]=[...state.explored[s]]);
     localStorage.setItem(LSKEY, JSON.stringify({
       session:SESSION, scene:state.scene, seq:state.seq, finished:state.finished,
-      explored, log:state.log, hidden:state.hidden, forkPairs:state.forkPairs, stream:stream.innerHTML
+      explored, synths:state.synths, log:state.log, hidden:state.hidden, forkPairs:state.forkPairs, stream:stream.innerHTML
     }));
   }catch(e){}
 }
@@ -563,10 +765,11 @@ function tryRestore(){
   if(saved && saved.stream && confirm("检测到上次未完成的进度，是否继续？")){
     state.scene=saved.scene; state.seq=saved.seq; state.finished=saved.finished;
     state.log=saved.log||[]; state.hidden=saved.hidden||[]; state.forkPairs=saved.forkPairs||[];
+    state.synths=saved.synths||[];
     state.explored={};
     (saved.explored||{}).forEach ? Object.keys(saved.explored||{}).forEach(s=>state.explored[s]=new Set(saved.explored[s])) : 0;
     stream.innerHTML = saved.stream;
-    renderSceneTrack(); renderChips(); renderDev();
+    renderSceneTrack(); renderChips(); renderBoard(); renderDev();
     scrollToBottom();
     return true;
   }
@@ -693,6 +896,7 @@ function boot(){
   document.getElementById("sessionId").textContent = "session: " + SESSION;
   appendScene(1);
   renderSceneTrack();
+  renderBoard();
   renderChips();
   renderDev();
   loadQueue();
