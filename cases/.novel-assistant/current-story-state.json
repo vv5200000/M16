@@ -1,0 +1,21 @@
+{
+  "lastChapter": 0,
+  "lastUpdated": "2026-08-21T05:11:28.026Z",
+  "characters": [],
+  "relationships": [],
+  "worldState": {
+    "currentTimeline": "",
+    "majorLocations": [],
+    "factions": [],
+    "activeConflicts": [],
+    "revealedSecrets": [],
+    "pendingMysteries": []
+  },
+  "plotProgress": {
+    "mainPlotPhase": "",
+    "subPlotsStatus": [],
+    "foreshadowsPlanted": [],
+    "foreshadowsResolved": [],
+    "pendingForeshadowCount": 0
+  }
+}
