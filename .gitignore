@@ -8,6 +8,7 @@ Desktop.ini
 node_modules/
 dist/
 *.local
+cases/data/material-vectors/*.bak
 
 # 敏感配置（如确有真实密钥时放入此文件，勿提交；当前项目无密钥）
 # .env
