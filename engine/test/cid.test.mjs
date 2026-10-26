@@ -22,9 +22,10 @@ test('规则 §五.6 回归③：P02 问「手表」→ P05 再问「手表」�
 });
 
 test('规则 §五.6 回归②：P06 问「账本」→ P08 再问「账本」→ 两次都计分（不同 C-ID）', () => {
+  // C-ACC 编号按数据 seq=193 台账：04=刀疤那本账（C6「一本」合并，私账=账本同 C-ID 同义）；05 已撤销不复用。
   const t = track({
     P6: [{ id: 'P6.苏晚账本', term: '账本', synonyms: ['锁起来的账本'], dimension: 'S', cid: 'C-ACC-01' }],
-    P8: [{ id: 'P8.刀疤职业账本', term: '账本', synonyms: ['赊账记录'], dimension: 'S', cid: 'C-ACC-05' }],
+    P8: [{ id: 'P8.刀疤那本账', term: '账本', synonyms: ['私账', '鞋垫里的账'], dimension: 'S', cid: 'C-ACC-04' }],
   });
 
   const p6 = t.record({ beat: 'P6', input: '账本' });
@@ -33,16 +34,16 @@ test('规则 §五.6 回归②：P06 问「账本」→ P08 再问「账本」�
 
   const p8 = t.record({ beat: 'P8', input: '账本' });
   assert.equal(p8.scored, true);
-  assert.equal(p8.cid, 'C-ACC-05');
+  assert.equal(p8.cid, 'C-ACC-04');
   assert.equal(t.summary().total, 2);
-  assert.deepEqual(t.summary().scoredCids.sort(), ['C-ACC-01', 'C-ACC-05']);
+  assert.deepEqual(t.summary().scoredCids.sort(), ['C-ACC-01', 'C-ACC-04']);
 
   // §五.3 同词异指按拍解析，记 alias_resolve
   const aliasLogs = t.summary().logs.filter((entry) => entry.code === 'alias_resolve');
   assert.equal(aliasLogs.length, 2);
-  assert.deepEqual(aliasLogs[0].candidates.sort(), ['C-ACC-01', 'C-ACC-05']);
+  assert.deepEqual(aliasLogs[0].candidates.sort(), ['C-ACC-01', 'C-ACC-04']);
   assert.equal(aliasLogs[0].cid, 'C-ACC-01');
-  assert.equal(aliasLogs[1].cid, 'C-ACC-05');
+  assert.equal(aliasLogs[1].cid, 'C-ACC-04');
 });
 
 test('规则 §五.6 回归①：最长命中优先，禁子串回溯叠计', () => {

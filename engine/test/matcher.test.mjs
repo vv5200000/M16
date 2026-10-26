@@ -58,6 +58,20 @@ test('AC-5 G6④ 严格前缀异维由最长匹配消歧（消源优先）', () 
   assert.equal(match.chosen.surface, '出借本');
 });
 
+test('N2 跨维后缀：长词面内含异维短词面按最长匹配消解，禁子串回溯（老账户的编号 ⊃ 编号）', () => {
+  const suffix = buildLexicon([
+    { id: 'a', term: '编号', dimension: 'S' },
+    { id: 'b', term: '老账户的编号', dimension: 'N' },
+  ]);
+  const match = longestMatch(normalize('老账户的编号'), suffix);
+  assert.equal(match.matched, true);
+  assert.equal(match.ambiguous, false);
+  assert.equal(match.chosen.key, 'N');
+  assert.equal(match.chosen.surface, '老账户的编号');
+  // 无子串回溯：短词仅留候选，不产生第二个计分命中
+  assert.ok(match.candidates.some((c) => c.surface === '编号'));
+});
+
 test('无命中', () => {
   const match = longestMatch(normalize('天气不错'), lexicon);
   assert.equal(match.matched, false);
