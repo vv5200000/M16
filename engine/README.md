@@ -31,6 +31,8 @@ s.exportSettlementRecord();                 // 生产留档（口径 B 严格字
 
 `createSession` 是唯一对外入口；内部轨道（perception / decision / p12）不暴露。
 
+灰度通道（批次 3 · 2A，D-B3-2）：`createSession({ config: { settlement: { mode: 'shadow' } } })` —— 记分/审计照常，`settle()` 只返回旁路壳（`outcome:'bypassed'`、无原型、无分值）；真实计算值仅在 `diagnostics().shadowSettlement`，生产留档 schema 不变（`conviction` 记 `bypassed`）。默认 `live`。
+
 ## 契约追溯表
 
 | 冻结规则（出处） | 实现 | 测试 |
@@ -53,6 +55,7 @@ s.exportSettlementRecord();                 // 生产留档（口径 B 严格字
 | C3 硬上限 120 字：截断 + 降权（默认判 0） | `p12.mjs` + `p12.overLimitPolicy` | `p12.test.mjs` |
 | 生产留档字段集 `{段ID, 是否计分, 终采原型, tie_state, presented_order/种子}`（C1b 口径 B） | `session.exportSettlementRecord()` | `isolation.test.mjs` |
 | 呈现顺序非人格信号（seed 驱动，不参与结算） | `p12.presentationOrder()` | `p12.test.mjs`、`isolation.test.mjs` |
+| 灰度通道：记分/审计照常、定罪结算旁路；live 默认（D-B3-2） | `config.settlement.mode` + `settle.toEffectiveSettlement()` + `session.diagnostics().shadowSettlement` | `shadow.test.mjs` |
 
 ## 待裁 / 开放项（引擎按默认值运行并显式暴露，不静默生效）
 
@@ -82,9 +85,11 @@ s.exportSettlementRecord();                 // 生产留档（口径 B 严格字
 5. **跨拍同词**：已按 R3 落地——同一 C-ID 只在首次有效探索计 1 分，后续返回文本、记 `dedup_hit`；P4 命中不写首计位；`l3:false` 行（如 P06「窗口」）命中即返回文本但不计分、不占位。
 6. **审计日志字段**：按规则 §五.5 记 `beat / matchedRow / cid / mapping / scored / dedupReason / crossDim`；**`input` 不落原文**（遵守 C1b"生产留档不含原文"），改记 `inputLength` + `inputHash`（FNV-1a）。如需 QA 留原文，另加显式开关，不默认开启。
 7. **`perception.maxHitsPerInput` 为空槽**：配置位保留（`1` 或 `'per_row'`），但运行期恒按 §四.1 严读法执行"一次输入全局 1 命中"；`'per_row'` 尚无消费点，待数据正式裁定后接实现，勿视为已生效。
+8. **灰度旁路（批次 3 · 2A，D-B3-2）**：`settlement.mode='shadow'` 时 `settle()` 只返回旁路壳（`outcome/prototype/tieState/winners/display`，`display.copy=''`），不含 `s/p12/t/maxT`；`outcome/tieState` 新增枚举值 `bypassed`（字段集不变）。真实计算值经 `diagnostics().shadowSettlement` 供联调攒数，**不写生产留档**；`exportSettlementRecord()` 字段集冻结不变、`conviction` 取旁路值。live 并列文案与算法零改动（1A）。
 
 ## 不变量（有测试守护）
 
 - `dimensionScores()` 无任何定罪字段；`settle()` / `exportSettlementRecord()` 无任何 MBTI 字段。
+- 灰度（`settlement.mode='shadow'`）下 `settle()` 不含原型与分值，`shadowSettlement` 仅存在于 `diagnostics()`、不进入生产留档。
 - 生产留档不含读者原文、连续分值、相似度或向量；呈现顺序（`presented_order`）只影响展示。
 - 配置解析结果深度冻结；P4 排除与 P12 上限不可通过配置修改。

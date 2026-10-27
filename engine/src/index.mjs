@@ -7,7 +7,7 @@ export {
   PENDING_ARBITRATIONS,
   ConfigError,
 } from './config.mjs';
-export { settleConviction, UNRESOLVED_COPY } from './settle.mjs';
+export { settleConviction, toEffectiveSettlement, SETTLEMENT_MODES, UNRESOLVED_COPY } from './settle.mjs';
 export { evaluateTrigger, INSUFFICIENT_MESSAGE } from './trigger.mjs';
 export { classifySegment, presentationOrder } from './p12.mjs';
 export { normalize } from './text.mjs';

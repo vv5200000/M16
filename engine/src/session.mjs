@@ -6,7 +6,7 @@ import { createPerceptionTrack } from './perception.mjs';
 import { createDecisionTrack } from './decision.mjs';
 import { createP12Track } from './p12.mjs';
 import { evaluateTrigger, INSUFFICIENT_MESSAGE } from './trigger.mjs';
-import { settleConviction } from './settle.mjs';
+import { settleConviction, toEffectiveSettlement } from './settle.mjs';
 import { BEATS, DEEP_MOUNTS, DECISION_FORKS, PERCEPTION_WORDLISTS } from '../data/beats.mjs';
 import { P12_DATA } from '../data/p12.mjs';
 
@@ -79,14 +79,35 @@ export function createSession({ config, data, seed = 'default', sessionId = null
     return p12.submit({ segmentId, input });
   }
 
-  function settle() {
+  /** 冻结结算的纯计算；live/shadow 共用同一份数值，差异只在"是否生效"。 */
+  function computeSettlement() {
     const decisionSummary = decision.summary();
-    const result = settleConviction({
+    return settleConviction({
       conviction: decisionSummary.conviction,
       p12: p12 ? p12.points() : { A: 0, B: 0, C: 0 },
       config: cfg,
     });
-    return { ...result, archiveComplete: p12 ? p12.isComplete() : false };
+  }
+
+  function settle() {
+    // 批次 3 · 2A：live 原样生效；shadow 返回旁路壳（无原型/无分值/无读者文案）。
+    const effective = toEffectiveSettlement(computeSettlement(), cfg.settlement.mode);
+    return { ...effective, archiveComplete: p12 ? p12.isComplete() : false };
+  }
+
+  /** 灰度期运维/数据通道：真实计算值，不写生产留档、不含原文与任何 MBTI 字段。 */
+  function shadowSettlementSnapshot() {
+    const shadow = computeSettlement();
+    return {
+      s: { ...shadow.s },
+      p12: { ...shadow.p12 },
+      t: { ...shadow.t },
+      maxT: shadow.maxT,
+      winners: [...shadow.winners],
+      outcome: shadow.outcome,
+      prototype: shadow.prototype,
+      tieState: shadow.tieState,
+    };
   }
 
   function dimensionScores() {
@@ -138,10 +159,13 @@ export function createSession({ config, data, seed = 'default', sessionId = null
   function diagnostics() {
     return {
       configVersion: cfg.version,
+      settlementMode: cfg.settlement.mode,
       pendingArbitrations: cfg.pending.map((item) => ({ ...item })),
       openedBeats: [...opened],
       perception: perception.summary(),
       decision: decision.summary(),
+      // 灰度期只在此通道暴露真实计算值：联调方负责攒数，引擎不将其写入生产留档。
+      ...(cfg.settlement.mode === 'shadow' ? { shadowSettlement: shadowSettlementSnapshot() } : {}),
       p12: p12
         ? {
             seed: p12.seed,

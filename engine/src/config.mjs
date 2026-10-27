@@ -101,6 +101,8 @@ export const DEFAULT_CONFIG = {
     // 项目 seq=173 裁定：forced（超窗强制归档）不是读者的有效首次选择，不占用 first-decision-wins。
     forcedConsumesFirstDecision: false,
   },
+  // 批次 3 · 2A（D-B3-2）：灰度旁路。live = 现行行为；shadow = 记分/审计照常、定罪结算不生效。
+  settlement: { mode: 'live' },
   p12: {
     echoTau: 0.6,
     marginDelta: 1,
@@ -143,6 +145,7 @@ export function resolveConfig(overrides = {}) {
     dimension: mergeSection(DEFAULT_CONFIG.dimension, overrides.dimension, 'dimension'),
     perception: mergeSection(DEFAULT_CONFIG.perception, overrides.perception, 'perception'),
     decision: mergeSection(DEFAULT_CONFIG.decision, overrides.decision, 'decision'),
+    settlement: mergeSection(DEFAULT_CONFIG.settlement, overrides.settlement, 'settlement'),
     p12: mergeSection(DEFAULT_CONFIG.p12, overrides.p12, 'p12'),
     trigger: mergeSection(DEFAULT_CONFIG.trigger, overrides.trigger, 'trigger'),
   };
@@ -174,6 +177,13 @@ export function resolveConfig(overrides = {}) {
   }
   if (![1, 'per_row'].includes(config.perception.maxHitsPerInput)) {
     throw new ConfigError("perception.maxHitsPerInput 只能是 1 或 'per_row'（契约 §四.1）");
+  }
+
+  // 批次 3 · 2A（D-B3-2）：灰度旁路为显式开关，默认 live 保持现行行为。
+  if (!['live', 'shadow'].includes(config.settlement.mode)) {
+    throw new ConfigError(
+      "settlement.mode 只能是 'live'（默认，定罪生效）或 'shadow'（灰度旁路：记分/审计照常，定罪结算不生效）",
+    );
   }
 
   if (config.p12.maxPointsPerSegment !== FROZEN.p12MaxPointsPerSegment) {
