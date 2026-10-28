@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M16 · 关键词输入交互原型（P04–P12 · 批次 2/3/5 · 终验增量）</title>
+<style>
+  :root{
+    --paper:#191612; --card:#211d17; --ink:#d8cfbc; --ink-dim:#8f8674;
+    --accent:#c9a227; --line:#3a342a; --block:#c44536; --clock:#a7b5a0;
+    --serif-latin:"Iowan Old Style","Palatino Linotype","Palatino",Georgia,serif;
+    --serif-cn:"Songti SC","STSong","SimSun","Noto Serif CJK SC",serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:var(--serif-latin),var(--serif-cn);
+    line-height:1.85; min-height:100vh;
+    background-image:
+      repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,.012) 2px,rgba(255,255,255,.012) 4px),
+      radial-gradient(ellipse at 20% 0%,rgba(201,162,39,.05),transparent 60%);
+  }
+  .wrap{max-width:840px;margin:0 auto;padding:32px 20px 80px}
+  header{border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:22px}
+  h1{font-size:20px;font-weight:600;letter-spacing:.08em}
+  .meta{font-size:12px;color:var(--ink-dim);margin-top:6px;letter-spacing:.05em}
+  .meta .warn{color:var(--block)}
+  .tabs{display:flex;gap:8px;margin-bottom:20px}
+  .tab{
+    flex:1;padding:10px 14px;border:1px solid var(--line);background:transparent;
+    color:var(--ink-dim);font:inherit;font-size:14px;letter-spacing:.1em;cursor:pointer;
+    transition:color .2s,border-color .2s;
+  }
+  .tab[aria-selected="true"]{color:var(--accent);border-color:var(--accent);background:rgba(201,162,39,.06)}
+  .tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .scene{
+    background:var(--card);border:1px solid var(--line);padding:26px 28px;
+    border-radius:2px;position:relative;
+  }
+  .scene h2{font-size:16px;font-weight:600;letter-spacing:.15em;margin-bottom:16px;color:var(--ink)}
+  .scene p{margin-bottom:12px;font-size:15px}
+  .scene .quote{
+    border-left:2px solid var(--accent);padding:2px 0 2px 16px;margin:14px 0;
+    color:var(--ink);font-style:normal;
+  }
+  /* 页边旁记 · UI 裁定规格（cmsg_01m5vmzt）：标准 blockquote 语义；
+     字号降一档、次级文本 token、左侧细竖线（默认线）；
+     禁背景块/图标/强调态/斜体/加粗——视觉只降级不标亮；段前后约 1.5 行；移动端同规格不折叠 */
+  .marginalia{
+    margin:28px 0;padding:0 0 0 16px;
+    font-size:13px;color:var(--ink-dim);font-style:normal;font-weight:400;
+    border-left:1px solid var(--line);
+  }
+  .scene-clock{
+    display:flex;align-items:center;gap:14px;margin:0 0 18px;padding:10px 14px;
+    border:1px solid var(--line);font-size:13px;color:var(--clock);letter-spacing:.05em;
+  }
+  .bar{flex:1;height:4px;background:var(--line);position:relative;overflow:hidden}
+  .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--clock);width:0%;transition:width .95s linear}
+  .bar.danger i{background:var(--block);transition:width .95s linear}
+  .scene-clock.danger{color:var(--block);border-color:var(--block)}
+  .hintrow{font-size:13px;color:var(--accent);margin-bottom:10px;letter-spacing:.04em}
+  input[type=text]{
+    width:100%;padding:12px 14px;background:#12100c;border:1px solid var(--line);
+    color:var(--ink);font:inherit;font-size:15px;border-radius:2px;
+  }
+  input[type=text]:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+  input::placeholder{color:#5c5546}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 6px}
+  .chip{
+    padding:4px 12px;border:1px solid var(--line);background:transparent;color:var(--ink-dim);
+    font:inherit;font-size:13px;cursor:pointer;border-radius:14px;transition:all .15s;
+  }
+  .chip:hover{border-color:var(--accent);color:var(--accent)}
+  .chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .log{margin-top:18px}
+  .entry{border-bottom:1px solid var(--line);padding:12px 2px;animation:fadein .3s}
+  .entry .q{font-size:13px;color:var(--ink-dim)}
+  .entry .q b{color:var(--ink);font-weight:600}
+  .entry .a{font-size:15px;margin-top:4px}
+  .entry.miss .a{color:var(--ink-dim)}
+  .entry.zero .a{color:var(--block);font-style:italic}
+  @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .decision{
+    margin-top:26px;padding:18px 20px;border:1px dashed var(--accent);
+    background:rgba(201,162,39,.04);
+  }
+  .decision h3{font-size:14px;font-weight:600;letter-spacing:.1em;color:var(--accent);margin-bottom:10px}
+  .decision p{font-size:14px;margin-bottom:10px}
+  .decision .lines{font-size:14px;color:var(--ink-dim);margin:8px 0 12px;padding-left:1em}
+  .decision .lines span{color:var(--ink)}
+  .done-note{margin-top:14px;font-size:13px;color:var(--clock);font-style:italic}
+  .done-note.timeout{color:var(--block)}
+  footer{margin-top:28px;font-size:12px;color:var(--ink-dim);line-height:1.9;border-top:1px solid var(--line);padding-top:14px}
+  .hidden{display:none!important}
+  @media (max-width:560px){
+    .scene{padding:18px 16px}
+    /* 旁记移动端同规格，不折叠（UI 裁定）；仅随容器收窄 */
+  }
+  @media (prefers-reduced-motion:reduce){
+    .entry{animation:none}
+    .bar i{transition:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>关键词输入交互原型 · P04–P12</h1>
+  <div class="meta">
+    M16 批次 2/3 · <strong>v3.4</strong>（v2=forced 态改判 + 终表 §四 #1–6 + N4/N5，探针双绿 seq=229；v3=终表 §四 #7 P06 场景分叉词面；v3.1=seq=241 裁定 2 symmetric 否定作废；v3.2=测试 seq=251 P3 重问提示叠加修复（终登 6584f49b…，seq=596 核可）；v3.3=seq=614 落位增量：P11 场景 13 行入原型＋比较面去标点归一（终登 3867a8ed…，seq=644/722 记档、第二绿 72/72）；<strong>v3.4=seq=722 裁定 R-7 P12 半项点名增量：P12 空场景运行时载体（零池行/chips 容器空/未匹配框架句＋建议词位置空/canon 三行提示语＋尾句逐字 verbatim，源＝落位件 b20cafee…）</strong>；<strong>v3.5=seq=1092 动工令批次 5 增量：P07–P10 四屏入原型（正文/block verbatim＝切片 2ce740e0…；46 行词面 verbatim 对 beats.mjs HEAD 3b9efae 形；chipsOrder＝P-4 §三首见序；A/B 面词面 P07/P10＝终表 §5.1/§5.4 定版全列、P08/P09＝切片全列；triggerAfter=7/7/6/6 候选 A 终值；选项展示行计分标注剥离＋第⑤条机防；branch/done 裁剪形延伸＝branchA/B←选项行剥离形、done←既载归档句；提示语←活动行；建议词≡chips）</strong>；依据 <strong>M16_批次1_Schema冻结契约_v1</strong> §四 + 分叉词表终表 + P04/P05/P06/P11/P12 落位成品）<br>
+    <span class="warn">原型仅供评审验证交互口径——正文展示、计分与落位成品不一致；生产实现中决策采集与计分在服务端，前端不呈现任何维度/分值。</span>
+  </div>
+</header>
+
+<div class="tabs" role="tablist" aria-label="选择节拍">
+  <button class="tab" role="tab" id="tab-p04" aria-controls="scene-p04" aria-selected="false">P04 · 凶器链</button>
+  <button class="tab" role="tab" id="tab-p05" aria-controls="scene-p05" aria-selected="true">P05 · 时间窗</button>
+  <button class="tab" role="tab" id="tab-p06" aria-controls="scene-p06" aria-selected="false">P06 · 第一份材料</button>
+  <button class="tab" role="tab" id="tab-p07" aria-controls="scene-p07" aria-selected="false">P07 · 第二份材料</button>
+  <button class="tab" role="tab" id="tab-p08" aria-controls="scene-p08" aria-selected="false">P08 · 第三份材料</button>
+  <button class="tab" role="tab" id="tab-p09" aria-controls="scene-p09" aria-selected="false">P09 · 档案暗格</button>
+  <button class="tab" role="tab" id="tab-p10" aria-controls="scene-p10" aria-selected="false">P10 · 深水区</button>
+  <button class="tab" role="tab" id="tab-p11" aria-controls="scene-p11" aria-selected="false">P11 · 暗线浮现</button>
+  <button class="tab" role="tab" id="tab-p12" aria-controls="scene-p12" aria-selected="false">P12 · 归档（空场景）</button>
+</div>
+
+<!-- ================= P04 ================= -->
+<section class="scene hidden" id="scene-p04" role="tabpanel" aria-labelledby="tab-p04">
+  <h2>第四节 · 凶器链</h2>
+  <div id="p04-body"></div>
+  <div class="hintrow" id="p04-hint">你能问的只有这本子和他的记性。写下你想追查的词。</div>
+  <input type="text" id="p04-input" placeholder="写下你注意到的……" aria-label="关键词输入（P04）" autocomplete="off">
+  <div class="chips" id="p04-chips" role="group" aria-label="建议词"></div>
+  <div class="log" id="p04-log" aria-live="polite"></div>
+  <div id="p04-decision"></div>
+</section>
+
+<!-- ================= P05 ================= -->
+<section class="scene" id="scene-p05" role="tabpanel" aria-labelledby="tab-p05">
+  <h2>第五节 · 时间窗</h2>
+  <div class="scene-clock" id="p05-clock" aria-label="场景压力窗计时">
+    <span id="p05-clockread">16:24</span>
+    <div class="bar" id="p05-bar"><i></i></div>
+    <span id="p05-remain">离报送 36 分钟</span>
+  </div>
+  <div id="p05-body"></div>
+  <div class="hintrow" id="p05-hint">两点之前你只能先看、只可问。写下你在意的词。</div>
+  <input type="text" id="p05-input" placeholder="写下你注意到的……" aria-label="关键词输入（P05）" autocomplete="off">
+  <div class="chips" id="p05-chips" role="group" aria-label="建议词"></div>
+  <div class="log" id="p05-log" aria-live="polite"></div>
+  <div id="p05-decision"></div>
+</section>
+
+<!-- ================= P06 ================= -->
+<section class="scene hidden" id="scene-p06" role="tabpanel" aria-labelledby="tab-p06">
+  <h2>第六节 · 第一份材料</h2>
+  <div id="p06-body"></div>
+  <div class="hintrow" id="p06-hint">桌上摊着材料，她沉默等你先开口。写下你在意的词。</div>
+  <input type="text" id="p06-input" placeholder="写下你注意到的……" aria-label="关键词输入（P06）" autocomplete="off">
+  <div class="chips" id="p06-chips" role="group" aria-label="建议词"></div>
+  <div class="log" id="p06-log" aria-live="polite"></div>
+  <div id="p06-decision"></div>
+</section>
+
+
+<!-- ================= P07 · v3.5 批次 5 增量（源＝落位切片 2ce740e0…） ================= -->
+<section class="scene hidden" id="scene-p07" role="tabpanel" aria-labelledby="tab-p07">
+  <h2>第七节 · 第二份材料</h2>
+  <div id="p07-body"></div>
+  <div class="hintrow" id="p07-hint">下一条落笔，是要她手里那件没派用场的东西，还是要她没说出口的那桩旧事——只能先问一样。写下你在意的词。</div>
+  <input type="text" id="p07-input" placeholder="写下你注意到的……" aria-label="关键词输入（P07）" autocomplete="off">
+  <div class="chips" id="p07-chips" role="group" aria-label="建议词"></div>
+  <div class="log" id="p07-log" aria-live="polite"></div>
+  <div id="p07-decision"></div>
+</section>
+
+<!-- ================= P08 · v3.5 批次 5 增量（源＝落位切片 2ce740e0…） ================= -->
+<section class="scene hidden" id="scene-p08" role="tabpanel" aria-labelledby="tab-p08">
+  <h2>第八节 · 第三份材料</h2>
+  <div id="p08-body"></div>
+  <div class="hintrow" id="p08-hint">下一条落笔，是逼他把那本不见光的账交出来，还是先去查出借本上他那一条线——两头，只能先落一头。写下你在意的词。</div>
+  <input type="text" id="p08-input" placeholder="写下你注意到的……" aria-label="关键词输入（P08）" autocomplete="off">
+  <div class="chips" id="p08-chips" role="group" aria-label="建议词"></div>
+  <div class="log" id="p08-log" aria-live="polite"></div>
+  <div id="p08-decision"></div>
+</section>
+
+<!-- ================= P09 · v3.5 批次 5 增量（源＝落位切片 2ce740e0…） ================= -->
+<section class="scene hidden" id="scene-p09" role="tabpanel" aria-labelledby="tab-p09">
+  <h2>第九节 · 档案暗格</h2>
+  <div id="p09-body"></div>
+  <div class="hintrow" id="p09-hint">下一条落笔，是先碰那封没拆的，还是先问那双鞋是谁的——先碰哪一样、落在哪一样，你定。写下你在意的词。</div>
+  <input type="text" id="p09-input" placeholder="写下你注意到的……" aria-label="关键词输入（P09）" autocomplete="off">
+  <div class="chips" id="p09-chips" role="group" aria-label="建议词"></div>
+  <div class="log" id="p09-log" aria-live="polite"></div>
+  <div id="p09-decision"></div>
+</section>
+
+<!-- ================= P10 · v3.5 批次 5 增量（源＝落位切片 2ce740e0…） ================= -->
+<section class="scene hidden" id="scene-p10" role="tabpanel" aria-labelledby="tab-p10">
+  <h2>第十节 · 深水区</h2>
+  <div id="p10-body"></div>
+  <div class="hintrow" id="p10-hint">你先落哪头，这拍算你的。写下你在意的词。</div>
+  <input type="text" id="p10-input" placeholder="写下你注意到的……" aria-label="关键词输入（P10）" autocomplete="off">
+  <div class="chips" id="p10-chips" role="group" aria-label="建议词"></div>
+  <div class="log" id="p10-log" aria-live="polite"></div>
+  <div id="p10-decision"></div>
+</section>
+<!-- ================= P11 ================= -->
+<section class="scene hidden" id="scene-p11" role="tabpanel" aria-labelledby="tab-p11">
+  <h2>第十一节 · 暗线浮现</h2>
+  <div id="p11-body"></div>
+  <div class="hintrow" id="p11-hint">四条来路都对得上，可没有一个人先开口。写下你在意的词。</div>
+  <input type="text" id="p11-input" placeholder="写下你注意到的……" aria-label="关键词输入（P11）" autocomplete="off">
+  <div class="chips" id="p11-chips" role="group" aria-label="建议词"></div>
+  <div class="log" id="p11-log" aria-live="polite"></div>
+  <div id="p11-decision"></div>
+</section>
+
+<!-- ================= P12 · 空场景运行时载体（v3.4/seq=722 裁定增量） ================= -->
+<section class="scene hidden" id="scene-p12" role="tabpanel" aria-labelledby="tab-p12">
+  <h2>第十二节 · 归档</h2>
+  <div id="p12-body"></div>
+  <input type="text" id="p12-input" placeholder="写下你注意到的……" aria-label="关键词输入（P12）" autocomplete="off">
+  <div class="chips" id="p12-chips" role="group" aria-label="建议词"></div>
+  <div class="log" id="p12-log" aria-live="polite"></div>
+  <div id="p12-decision"></div>
+</section>
+
+<footer>
+  引擎口径（冻结契约 §四）：最长匹配优先｜一次输入只计一次命中、禁子串回溯叠计（§四.1）｜异维多命中判 0 并记日志（§四.1）｜
+  chips 只取本拍 L2 集——P04 膛线/磨损/钥匙 已裁不入 L2、P05 对时 chip=「拿我的做准」、撬痕 chip=「压簧边」（§四.5，L1 仍可输入命中）｜
+  动作词黑名单 拒签/开盖/验针/复查/签字栏 + 送修单 X2 排除，不进 chips/建议词（§四.2/§三.4）｜
+  未匹配统一文案「没有找到关于"xxx"的直接线索。」+ 建议词（§四.6）｜S/N 只匹配探索段输入，决策落笔不进词库（§四.4）｜
+  决策点无按钮：自由输入隐式分叉，first-decision-wins（§二.2）｜P05 压力窗 16:24–17:00，决策卡出现后时钟继续走（N4）；超窗=forced 叙事归档：不计任何分（J/P 不采、定罪零流向）、不占首采位、留重进补采（seq=173 裁 + 终表 §二；L153 注同步）｜
+  分叉词表 v2=终表 §四 #1–6：P04 trust 删裸「信」、doubt 增复查/复查磨损/要求复查；P05 trust 增锁定窗口、doubt 增拒签/怀疑/被动过/撬痕/复查对时；混合命中含包含按最长匹配消解判侧（否定组合归 B）、真并存判 amb 重问不采分；G11 黑名单词仅对解析器开放，展示域禁令不变。
+  v3=终表 §四 #7（候 P06 r2 双绿后落）：新增 P06 场景——词库 12 行=S6/N6 正常采 S/N（窗口 C-WIN-01 P05 首计、本拍 L3 不计分系服务端去重，原型本地 probe 不模拟）；chips=L2 终集六词（账本/纸条/漆皮/三遍/一模一样/不藏，S3/N3，项目 seq=221 裁定 1）；分叉=双主动选题型（A 追账→T、B 问丈夫→F；定罪流向 A→B轨+1、B→A轨+1 系服务端口径）——**不适用 doubt 优先/否定归 B**，仅承通用规则：复合词面、禁单字、混合命中含包含按最长匹配消解、真并存判 amb 重问一次不采分不占首采；追账/查账 X2 全出仅限展示域（词库/chips/建议词/返回块），决策解析器面正常开放（终表 §三）；P06 无计时器、无 forced 态；两轨互污禁令落点：分叉输入永不触发 S/N 词库命中与采样，探索输入永不触发分叉面。symmetric 否定前置作废（seq=241 裁定 2·终表 §三五则，非归 B 规则）：单侧命中被 不/没/别/未 紧邻前置→该命中作废，剔尽落 none 统一重问（不采分不占首采），正面落笔对侧仍可正常采。
+  v3.2=测试 seq=251 P3 修复（重问提示叠加）——一行修复令 seq=255，创建侧类名统一 done-note dec-tip。
+  v3.3（seq=614 落位增量，6584f49b 终登后的单独增量·单独探针·单独登记）：① P11 场景——词库 13 行=S7/N6 正常采 S/N（13 行均 L2；词库数组序＝落位件表行序（verbatim 可对比），chips 展示序按 scene.chipsOrder＝正文过手序 S-1：壁画/轮廓/画给你看/车被开走/没对任何人讲/相册里的车/那出戏不吉利/旧戏箱/彩排录像/改了戏词/天亮之前，别回头/那张票/同一个人——与头注③/未匹配引导行/快照 chips 表四处同序）；分叉=双主动选题型 symmetric=true（A 追那人→E+1、B 回枪案→I+1 直对应——P11＝E/I 全路径唯一最低采样位、两选项均计分、定罪不计、其他选择不计 S/N；A/B 面 24 串 r2 草稿 §三分叉解析行 verbatim 入表——终表 §五 入册系服务端引用形）；追那人/回枪案 X2 L1/L2/L3 全出＝不进词库/chips/建议词，决策解析器面正常开放；P11 无计时器、无 forced 态（r2 分叉解析行 forced 描述系五则模板语——无计时即无超窗触发，与 P06 同形；若项目另裁 P11 需叙事 forced 入口，请下令）；尾句「往外还是收回，起步走哪条道，看你的。」未注册走未匹配兜底。② 比较面去标点归一（裁定六①无逗号子项提前收口）：normalize() 原归一面不动，新增 denorm()=归一面再剔除标点集；matchEntry 双轨——词面在原归一面或去标点面任一面命中即命中，最长匹配/一次一计/异维判 0 在两轨同构复用（长度以原归一面词面长计），效果=全角/半角/无逗号输入均命中「天亮之前，别回头」同一行；展示域零触碰（chips/建议词/返回块/正文保 canon 逗号逐字形）；parseDecision 不动（两轨隔离——分叉轨不读词库命中、24 面串无标点）。FAIL 不变式=歌词行三路命中外其余命中集合零变化。
+  页边旁记＝UI 裁定方案 1：标准 blockquote、字号降一档、次级文本 token、左细竖线、无背景/图标/斜体/加粗、不折叠、无额外 ARIA。
+  v3.4（seq=722 裁定·R-7 P12 半项点名增量，单独增量·单独探针·单独登记）：P12 空场景运行时载体入原型——零池行（lexicon=[]，检索命中轨在 P12 不产生得分）、chips 全域停用＝容器空（chipsFor 返回空集）、未匹配走 README 统一框架句「没有找到关于"xxx"的直接线索。」＋建议词位置空（空 chips 容器）；正文呈示位仅 canon 三行提示语＋尾句逐字（verbatim 源＝落位件 b20cafeedb0819bec7f00c1ef2df9ba4 / r2 草稿 e60adf35… 正文域逐行一致的已核形；弯引号＝展示层字形，O-4 口径，verbatim 断言行内串不含外框＝UI seq=663 O-2 采纳形）；零场景叙事（不新增任何自撰叙述/提示行）、无决策卡无分叉面（R-8 按段独立首采系服务端口径，不在本增量——玩家直输＝分类器填充输入，前端不判段不计分）、无计时器无 forced；probe=false＝零 S/N 采样触点，词库零行＝零 C-ID 触点。P01–P11 全量回归零差为验收前提（终验探针 45 断言案形复跑；其中 R7.7 由「P12 未入原型」订正为「P12 空场景形」系探针侧变更非改码）。落位件与 README 一字未动（本增量仅原型件）。
+</footer>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   M16 关键词匹配引擎 · 原型（按冻结契约 §四 实现）
+   内部状态仅驻留内存：原型无后端，生产实现中计分/审计在服务端。
+   ============================================================ */
+
+/* ---- 词库数据：行集与落位成品一致（P04=12、P05=10、P06=12、P11=13、P12=0 零池行）。
+   L2=是否进 chips；label=chips 展示标签（§四.5 降档）；chipsOrder=展示序（缺省＝数组序）；
+   P04 整拍 probe=false（不进 S/N 轨，O1 口径②，仅作匹配演示） ---- */
+const SCENES = {
+  p04: {
+    probe: false,
+    lexicon: [
+      {kw:"膛线", syn:["来复线","线的深浅"], map:"S", L2:false,
+       block:"他嘴里的膛线是一段复述：你只能凭他的话去想那道深浅。"},
+      {kw:"磨损", syn:["扳机磨损","开过多少发"], map:"S", L2:false,
+       block:"磨损是你反复回去的物证面：痕迹深浅在你眼里是能数出来的东西。"},
+      {kw:"登记簿", syn:["出借本","台账","借出记录","一借一还"], map:"S", L2:true,
+       block:"你把纸面登记当作入口：哪一页、哪一行、签名像不像同一个人。"},
+      {kw:"钥匙", syn:["柜子的锁"], map:"S", L2:false,
+       block:"交接动作引起你的注意：谁经手、谁保管、钥匙过几只手。"},
+      {kw:"八月", syn:["八月中"], map:"S", L2:true,
+       block:"你习惯先落日历：过了他手的日期，你要摸实物。"},
+      {kw:"干净", syn:["没开过火","修的时候是干净的","不干净"], map:"S", L2:true,
+       block:"一句物性口供你能咀嚼很久，而且要它落在他的复述上复演一遍。"},
+      {kw:"校膛线", syn:["过我的手工","锉"], map:"S", L2:true,
+       block:"你想知道\u201c怎么修的、修成什么样\u201d——对工艺细节本身有兴趣。"},
+      {kw:"睡得很沉", syn:["那晚听见什么"], map:"S", L2:true,
+       block:"你回到声音的现场：有人问过他那一晚，他答了四个字。"},
+      {kw:"字迹", syn:["签名","洇了"], map:"N", L2:true,
+       block:"一处笔迹差异就让你开始联想\u201c登记之外的人\u201d，你不要求见到实物。"},
+      {kw:"只打霰弹", syn:["另一把老枪"], map:"N", L2:true,
+       block:"你没有停在枪本身，而是顺着\u201c被谁带走过\u201d去想象那条链条。"},
+      {kw:"借走", syn:["还过","名字洇了"], map:"N", L2:true,
+       block:"一借一还的空档对你是一张网：谁的手离开过枪，离开过多久。"},
+      {kw:"我只说我的部分", syn:["说这话时手收紧"], map:"N", L2:true,
+       block:"你抓住一句定性的边界：他停在哪，哪后面就站着没说的东西。"},
+    ],
+    /* X2/决策层词面：不进 chips、不进建议词（送修单 P05 同类，P04 无排除登记项） */
+    body: [
+      {t:"p", x:"老孟头的铺子在庄东头，门脸比何钟那边宽——挂枪的地方多。你找到他的时候，他正低着头锉什么东西，动作很稳，一下是一下。"},
+      {t:"p", x:"他四十五岁，修枪修了二十年，没修坏过一把。十五岁上他就能独立做一把完整的猎枪，庄里人都这么讲。"},
+      {t:"p", x:"<em>\u201c枪八月中在我这儿。\u201d</em>他没有停手上的活，<em>\u201c过了我的手工。修的时候是干净的，没开过火。\u201d</em>"},
+      {t:"p", x:"案卷里的话到这儿本可以结束。可他说这话时手收紧的样子不对——那把枪早就不在他手上了，庄伯年取回去的，收在山屋书房的柜里。柜子的事他没接话。"},
+      {t:"marginalia", x:"案卷页边上有一条旁记：一把枪是不是不干净，他闻得出来。关于那把八月的枪，他讲的永远只有前半句——修的时候——后半句，他没开口。"},
+      {t:"p", x:"<em>\u201c我只说我的部分。\u201d</em>他把锉刀放下来，第一次抬头看你，<em>\u201c有人问我那晚听见什么。我说我睡得很沉。\u201d</em>"},
+      {t:"p", x:"他说完，重新去低头干活，像已经把你归档在了\u201c问完了\u201d那一栏。桌面上摊着一本<b>出借本</b>，纸页潮过又压平，边角卷着。本子上的规矩是一借一还各签一个字。近几页里有一行还着：借走的是<b>另一把老枪，只打霰弹的那把</b>，还过；还有一行名字洇了，看不出是谁。"},
+      {t:"p", x:"他指节在纸面上敲了两下，没说话。你能问的只有这本子和他的记性——枪不在他手上了，谁也拿不回那晚之前它被谁摸过。"},
+    ],
+    decision: {
+      triggerAfter: 6,
+      prompt: "老孟头说完\u201c我只说我的部分\u201d，回到工作台，锉刀声又响起来。这一节怎么带走，落在你写下的那句话里。",
+      lines: [
+        ["A","信他——枪过了他的手，没被调换。收下这份复述和登记簿，转向下一份材料。"],
+        ["B","不信一句就收——请他停下来，对着出借本，把膛线和扳机磨损的状态再复述一遍。"],
+      ],
+      /* 分叉解析：无按钮；复合词面，禁单字触发（G11 口径）。v2=终表 §四 #1/#2（seq_198 令二） */
+      trust: ["信他","相信","采信","没被调换","没调换","收束","下一份","转向","接受复述","信他的复述"],
+      doubt: ["再复述","复述一遍","对照出借本","对照登记簿","重新说","讲清楚","再讲一遍","不对劲","有出入","手收紧","复查","复查磨损","要求复查"],
+      branchA: "你点头，把这页收进案卷。他的复述和登记簿一起归档——八月中，过了他的手，干净，没开过火。你转向下一份材料。",
+      branchB: "他把锉刀彻底放下，拿来出借本，指着那一行：\u201c膛线的深浅我报过。扳机的磨损——他天天摸的东西，我说得出每一道。\u201d他对着本子复述了一遍，等你记完，才重新低头。",
+      doneA: "（本节归档。）",
+      doneB: "（本节归档。）",
+    },
+  },
+  p05: {
+    probe: true,
+    lexicon: [
+      {kw:"手表", syn:["那块表","这块表","一块表","绒布里的表"], map:"S", L2:true,
+       block:"实物指针在你眼里是锚：走时、表背、压簧的松紧，你都要过一遍手。"},
+      {kw:"字条", syn:["表壳里的条","庄主的话"], map:"S", L2:true,
+       block:"你相信落在纸上的字：一行原话、一个日期，你要它们和钟点对上。"},
+      {kw:"挂钟", syn:["墙上那口","整点响"], map:"S", L2:true,
+       block:"环境里的机械声被你当作参照物：一声一声，和手里的表比。"},
+      {kw:"对时", syn:["拿我的做准","对过针"], map:"S", L2:true, label:"拿我的做准",
+       block:"校准动作和钟点权威是你眼里的物理证据链：一声钟、他嘴里那个钟点。"},
+      {kw:"撬痕", syn:["浅痕","压簧边"], map:"S", L2:true, label:"压簧边",
+       block:"压簧边上那道浅痕，你反复看它的走向。"},
+      {kw:"两小时", syn:["到我出事","只有两小时"], map:"N", L2:true,
+       block:"\u201c两小时\u201d在你这里不是一个数，是一段被拉出实感的长度，你想把它钉死。"},
+      {kw:"托付", syn:["等我走了再打开","三年"], map:"N", L2:true,
+       block:"你从一句嘱托读出物件之外的事：这块表进过别人的手、别人的年份。"},
+      {kw:"我不碰针", syn:["只看针"], map:"N", L2:true,
+       block:"一句话的身份感你抓得住：说话的人是链条哪一环，比他说的事实更远。"},
+      {kw:"出事", syn:["那晚出的事"], map:"N", L2:true,
+       block:"你不问钟，你问\u201c那天下午四点四十到晚上七点之间发生了什么\u201d——词把你推向事件网。"},
+      {kw:"召集", syn:["临时召集","集合令","敲钟","16:40"], map:"N", L2:true,
+       block:"一个动词\u201c召集\u201d让你想到人聚拢的形状，谁叫的、为什么这个点。"},
+    ],
+    /* X2 排除登记：送修单 L1/L2/L3 全出（不进 chips、不进建议词；输入走未匹配兜底=R4 中性重述） */
+    body: [
+      {t:"p", x:"何钟的铺子和老孟头的一样在庄东头，隔壁就是枪匠的门脸。你进去的时候，他面前的事比钟大：桌上一张<b>送修单</b>，\u201c取件签字\u201d栏空着，联上写着今天<b>下午五点</b>——门外已经有人在廊下坐着等表了。墙上挂钟：<b>16:17</b>。"},
+      {t:"p", x:"<em>\u201c你要问八月底那晚，\u201d</em>他从一台拆开的座钟后面抬起头，<em>\u201c时间的事，只能问我。庄里的钟，钟点都拿我的做准。\u201d</em>"},
+      {t:"p", x:"他从绒布里取出一块表。不是他自己的——<b>三年前老庄主托付给他的</b>，交表时说\u201c等我走了再打开\u201d。三年了，他见谁都讲：我没打开过。"},
+      {t:"p", x:"<em>\u201c那晚的集合令是敲钟发的。\u201d</em>他把表放在送修单旁边，<em>\u201c钟响的时候我对过针：<b>下午四点四十</b>。字条在表壳里，写的是庄主自己的话——\u201d</em>"},
+      {t:"quote", x:"\u201c从我发出最后一轮临时召集，到我出事，只有两小时。\u201d"},
+      {t:"p", x:"<em>\u201c两小时。\u201d</em>何钟的指尖在表和单之间来回，<em>\u201c你要信我这块表的钟点，那晚的头尾就钉死了；你要是不信——\u201d</em>他没有说完。挂钟响了一下，<b>16:20</b>。门外等着取表的人咳了一声。"},
+      {t:"p", x:"你去拿表的时候，注意到表背：压簧边上有一道很浅的痕，像谁赶时间开过一次盖。何钟顺着你的视线看了一眼，把表翻了个面，收回绒布里。"},
+      {t:"p", x:"<em>\u201c开过没开过，我不知道。\u201d</em>他说，<em>\u201c我不碰针，我只看针。\u201d</em>"},
+      {t:"p", x:"<b>16:24。送修单的签字栏还是空的。</b>你手里有两件东西：钉死窗口的钟点和字条，和一道对不上\u201c没打开过\u201d的浅痕。这张单需要你替他把不上的最后一道，替他把得上的那一道——五点之前。"},
+    ],
+    decision: {
+      triggerAfter: 5,
+      prompt: "挂钟指着这个数，门外的人还在等。这张单需要你替他落下最后一道——你写下你要做的事。",
+      lines: [
+        ["A","落笔。在单上确认他的钟点和字条口径——钉死那晚的头尾，先把能钉的钉住。"],
+        ["B","笔悬着。请他把话说明白：表背上的浅痕，和他见人就讲的那句\u201c没打开过\u201d，哪一句作数。"],
+      ],
+      /* v2=终表 §四 #3/#4：G11 黑名单词（拒签/复查对时）仅对决策层解析器开放，展示域禁令不变 */
+      trust: ["落笔","签字","签了","确认","钉死","替他签","接受","信他","信这块表","信他这块表","按字条","先签","锁定窗口"],
+      doubt: ["不肯落笔","不签","悬着","说明白","哪一句作数","对不上","解释","浅痕","没打开过","不肯","质疑","拒签","怀疑","被动过","撬痕","复查对时"],
+      branchA: "你替他落下这一道。单联折好，钟点和字条一起钉进那晚的头尾。他把表推给你时，挂钟正响。",
+      branchB: "你的笔停在半空。何钟看着那道浅痕，看了比平时长的一眼，把单往回抽了半寸：\u201c……这块表我确实没开过。你要问痕——我只能告诉你我看见的。\u201d单子没有落定。",
+      doneA: "（单已落笔，本节归档。）",
+      doneB: "（单未落笔，本节归档。）",
+      timeoutText: "廊下的人站了起来。何钟自己拿过笔，替这张单落了最后一道：\u201c钟点你信不信都行，表我得还人。\u201d（取件钟到，按确认钟点归档。）",
+    },
+  },
+  p06: {
+    /* v3=终表 §四 #7（P06 r2 双绿 seq=229 后落）。P06 词库正常采 S/N（素材包 §四；与 P04 白名单不同）。
+       窗口行 C-WIN-01 系 P05 首计、本拍 L3 不计分（X7 去重）——服务端口径，原型本地 probe 不模拟跨拍去重。
+       X2 登记：追账/查账 L1/L2/L3 全出=不进词库/chips/建议词（本表无该行即已全出）；
+       决策解析器面正常开放（终表 §三 X2 边界重申）——分叉输入走 parseDecision，永不触发 S/N 采样。 */
+    probe: true,
+    lexicon: [
+      {kw:"账本", syn:["锁起来的账本","复印件"], map:"S", L2:true,
+       block:"锁着的封面也是一条线索：你先看锁，再看页。"},
+      {kw:"流水", syn:["这一笔","那一行"], map:"S", L2:false,   /* EX-P06-004 X3 降档非出池 */
+       block:"你顺着条目走：钱从哪儿出、经了几道手、每道隔了多久。"},
+      {kw:"编号", syn:["一页一个号"], map:"S", L2:false,
+       block:"一页一个号：你先去对号，再回头看故事。"},
+      {kw:"纸条", syn:["写满数字"], map:"S", L2:true,
+       block:"几行数字你会停下来多看：那些数你想摊到地图上，和地皮对上。"},
+      {kw:"漆皮", syn:["蹭下的漆","没比对出"], map:"S", L2:true,
+       block:"一个小瓶收口贴了日期：你怎么翻它，它都还是原样躺着。"},
+      {kw:"五万", syn:["那笔现金","第一页"], map:"S", L2:false,
+       block:"一笔数目在你眼里有厚度：五万块立起来是什么样子，你想过。"},
+      {kw:"中转", syn:["中转三次","三次"], map:"N", L2:false,
+       block:"钱走的路你也要走一遍：进过哪几道门、每道停了多久。"},
+      {kw:"一模一样", syn:["流转的模式","二十年前"], map:"N", L2:true,
+       block:"两个隔了二十年的年份被你想到了一起：旧号码你想拿它压在新流水上。"},
+      {kw:"那件事", syn:["只开一格的","封面三个字"], map:"N", L2:false,
+       block:"你听见三个字的形状：不肯命名的那件，比命名的那件大。"},
+      {kw:"三遍", syn:["数了三遍","十二岁"], map:"N", L2:true,
+       block:"重复的计数动作让你想到更早教它的那双手，和一段来历。"},
+      {kw:"窗口", syn:["两个小时","召集到出事"], map:"N", L2:false,   /* C-WIN-01 P05 首计，本拍 L3 不计分（X7） */
+       block:"你注意到的是那段长度的形状，不是它的内容。"},
+      {kw:"不藏", syn:["也不解释"], map:"N", L2:true,   /* C-NAME-01；seq=221 裁定 1 入 L2 */
+       block:"你停在这一句不藏上：把自己名字排进去的人，你要看他后面还写不写。"},
+    ],
+    body: [
+      {t:"p", x:"苏晚的房间在山屋东厢，离主厅最远，门没关。桌上一台电脑、一本<b>锁起来的账本</b>、一沓写满数字的纸条，三样东西各归各位，边是对齐的。她是省城投资公司的合伙人。"},
+      {t:"p", x:"你没开口，她先把一个文件匣推过来：账本的复印件，编过号，一页一个号。<em>\u201c2004 年，\u201d</em>她说，<em>\u201c这一笔，你们该看看。\u201d</em>"},
+      {t:"p", x:"那一行写得很平：五万块现金，从猎庄的账上出去，经一层中间人，落到她手里。她把自己的名字排进第一页的编号里，不藏，也不解释。"},
+      {t:"p", x:"<em>\u201c二十年前是这么走的。今年六月，\u201d</em>她压出另一页，是她雇的人发来的流水：一笔钱从猎庄的老账户流出，<b>中转了三次</b>，最后落在<b>一家维修厂</b>的账上。<em>\u201c流转的模式和二十年前一模一样。老账户的编号，我认得。\u201d</em>"},
+      {t:"p", x:"复印件你一页页翻过去：从头到尾都是钱的事，没有一行沾枪。"},
+      {t:"p", x:"文件匣最里面另有一格独立编号，封面三个字——<b>\u201c那件事\u201d</b>。另一案的理赔单、账单、法医报告，和一小瓶<b>肇事车上蹭下的漆皮</b>，瓶身标着\u201c没比对出哪辆车\u201d。瓶底下压着一套数，像被反复过秤。有人讲过她这个习惯的来历：十二岁那年，看母亲把一沓钱数三遍。如今凡是重要的，她都数三遍。"},
+      {t:"p", x:"<em>\u201c我不赌。\u201d</em>她把电脑合上，开口前先沉默了三秒，<em>\u201c我只算对了。\u201d</em>"},
+      {t:"p", x:"你提到从何钟那里抄来的字条口径：召集到出事，两个小时。苏晚看了一眼，只点了一下头——没问出处，也没解释她为什么接受这个数，像在对一个早就填好的旧数。"},
+      {t:"p", x:"桌上摊着两样东西：编好号的流水，和标着\u201c那件事\u201d的格。你下一条要顺着哪条走，就得先选一页翻开。"},
+    ],
+    decision: {
+      triggerAfter: 5,
+      title: "两页摊开，只能先翻一页",
+      prompt: "苏晚合了电脑，沉默等你。下一条顺着哪条走——写下你要先翻开的那一页。",
+      lines: [
+        ["A","追账——逐笔核对 2004 那笔五万与今年六月中转三次的流水，让数据先说话。"],
+        ["B","问丈夫——翻开标着\u201c那件事\u201d的独立编号格，问那桩三年未闭合的肇事逃逸，让动机先说话。"],
+      ],
+      /* 终表 §三：双主动选题型——不适用 doubt 优先/否定归 B；A=trust 位、B=doubt 位仅为字段复用。
+         否定前置作废（seq=241 裁定 2 · 终表 §三五则）：被否定的命中不按原侧计分，剔空落 none 重问 */
+      symmetric: true,
+      trust: ["追账","查账","对账","核对账目","逐笔","一笔一笔","顺流水","流水","钱的来路","资金流向","中转","五万"],
+      doubt: ["问丈夫","她丈夫","亡夫","那件事","车祸","肇事","逃逸","漆皮","哪辆车","比对","三年前"],
+      branchA: "你先把编好号的那叠流水逐笔对下去：2004 的五万，中转的三道手，今年六月落在维修厂的那一笔。苏晚在你对面报编号，一个不差错。<em>\u201c钱走的路，就是我认得的路。\u201d</em>这一页用数字合上。",
+      branchB: "你拉开标着\u201c那件事\u201d的那一格：理赔单、账单、法医报告，和那瓶标着\u201c没比对出哪辆车\u201d的漆皮。你把小瓶往前推了半寸。苏晚沉默了三秒才开口：<em>\u201c三年了，没比对出哪辆车。\u201d</em>这一页问的不是钱。",
+      doneA: "（这一页先记在数字上，本节归档。）",
+      doneB: "（这一页先记在人上，本节归档。）",
+      tipAmb: "流水要逐笔对，格也要开——可你只能先翻一页。想清楚，写一条。",
+      tipNone: "两页都摊着。你下一条顺着哪条走？",
+    },
+  },
+  /* v3.5 批次 5 增量 · P07 第二份材料——源＝落位切片（2ce740e0…）＋终表 §5.1（A/B 面词面）＋P-4 基线 §三（chipsOrder 首见序）；
+     46 行词面/同义/维度 verbatim 对 beats.mjs（HEAD 3b9efae 形）；triggerAfter=候选 A（段落数−1）＝项目 seq=1092 终值；
+     选项展示行「→ 计分标注」已剥离（§四.1 第⑤条机防）；branch/done 裁剪形延伸＝branchA/B←选项行剥离形、done←既载「（本节归档。）」；提示语←活动行；建议词≡chips。 */
+  p07: {
+    probe: true,
+    lexicon: [
+      {kw:'钥匙', syn:['偷偷配的','从来没用过'], map:'S', L2:true, label:'偷偷配的',
+       block:'你先问它的来路：谁经手配的、开过哪道锁、这些年一直搁在哪儿。'},
+      {kw:'日记', syn:['照顾日记','一天没断过'], map:'S', L2:true,
+       block:'一天一格的面，你按页码走：哪格密、哪格疏，先看排版再看事。'},
+      {kw:'涂痕', syn:['涂掉','一道涂痕'], map:'S', L2:true,
+       block:'停在涂掉的那一格：你想知道笔下原来是什么，先看笔画压了多深。'},
+      {kw:'翻身', syn:['几点醒','说梦话'], map:'S', L2:true,
+       block:'你把这几栏一天一天对起来：夜里醒几回，白天就得补几行。'},
+      {kw:'蜷缩', syn:['手指微微蜷缩'], map:'S', L2:true,
+       block:'这一蜷发生在哪一瞬、什么场合，你会先记下来。'},
+      {kw:'那扇门', syn:['柴房','熬了一夜'], map:'S', L2:true,
+       block:'你记住一个睡的位置：谁睡屋里、谁睡柴房，门后头的事你想再问一遍。'},
+      {kw:'对不起', syn:['最后一页','那句话'], map:'N', L2:true,
+       block:'三个字你停了一下：先对书写的人，再对说的人。'},
+      {kw:'没有问', syn:['对不起的是谁'], map:'N', L2:true,
+       block:'问题到嘴边就停了：你不追她为什么不问，你追谁该回答。'},
+      {kw:'一辈子', syn:['伺候他一辈子'], map:'N', L2:true,
+       block:'一个时长落在人和人中间：你想把它折成一天一天数一遍。'},
+      {kw:'反复念', syn:['整夜不睡'], map:'N', L2:true,
+       block:'你数的是夜里的次数，不是念的内容：一整夜的份量，你想自己数一遍。'},
+      {kw:'守一段', syn:['各人守一段','没有人知道全局'], map:'N', L2:true,
+       block:'一句守一段，你会停下来：各守的是哪段，交给谁守的，你想分开装。'},
+      {kw:'不出声音', syn:['轻轻带过','只当没听见'], map:'N', L2:true,
+       block:'你留意被压低的那些：盖被的手、带过的话，落点都很轻，你反而多看。'},
+    ],
+    chipsOrder: ['日记','翻身','涂痕','反复念','对不起','没有问','钥匙','守一段','不出声音','蜷缩','那扇门','一辈子'],
+    body: [
+        {t:'p', x:'阿禾的房间在山屋东侧，靠病人屋最近，屋里最静。桌上东西不多，摆得齐。她是庄伯年的贴身护工。'},
+        {t:'p', x:'她先开口，声音很轻：一份《照顾日记》，一把<b>配的钥匙</b>，两样一起搁在桌上。"日记在这儿，一天没断过。"'},
+        {t:'p', x:'日记里记的只有他那几样：病，药，每晚几点醒，翻身几次，说梦话没有。你翻到中间，有一行字被涂掉，纸面只剩一道<b>涂痕</b>。出事前那阵子，他整夜不睡，反复念一个名字；她记下来，又涂掉。被问起，她只说："那是庄主留给我的信任。"'},
+        {t:'p', x:'最后一页只有三个字。她说，他弥留之前清醒过一次，说了句"对不起"，没再说第二遍——那句话，她写进了最后一页。她没有问，对不起的是谁。"他睡不着，我陪着他。"'},
+        {t:'p', x:'钥匙不是原配。她见过老庄主用它开过一次那扇柜门；桌上这把，是她偷偷配的，配了从来没用过。"万一他再需要开门的时候，钥匙在我这里。"柜门里头搁着什么，她没有讲；你也没有追问她知不知道。先前的材料里，柜子的事没人接得上话——这一份里，各人守一段，没有人知道全局。'},
+        {t:'p', x:'她说话轻声细语，端药、盖被都不出声音。你多看了那行涂痕一眼，她搭在膝上的手指微微蜷缩了一下，很快又平了。她把那一行只当没听见，轻轻带过，转去讲别的。'},
+        {t:'p', x:'你问她图什么。她只提那扇门：有一年冬天，老庄主把山屋的门让给她睡，自己去柴房熬了一夜。"从那天起，我决定了，伺候他一辈子。"'},
+        {t:'p', x:'材料归档时，钥匙收进匣子，日记摊在桌上。下一条落笔，是要她手里那件没派用场的东西，还是要她没说出口的那桩旧事——只能先问一样。'}
+    ],
+    decision: {
+      triggerAfter: 7,
+      symmetric: true,
+      prompt: '阿禾把日记与配的钥匙一并搁上桌上、说完"日记在这儿"之后，静等下一条问题。读者二选一：下一条先问哪一样 ',
+      lines: [["A", '要钥匙（先问她手里那件没派用场的东西，追到柜）'], ["B", '问遗憾（先问他没说出口的那桩旧事）']],
+      trust: ['要钥匙','拿钥匙','问钥匙','看钥匙','那把钥匙','钥匙下落','钥匙在哪','配了一把','偷偷配的','柜钥匙','她手里的钥匙','没派用场的东西'],
+      doubt: ['问遗憾','遗憾','旧事','那桩旧事','没说出口','没说出来的','对不起谁','对不起的是谁','那三个字','最后一页的事','他的心事'],
+      branchA: '要钥匙（先问她手里那件没派用场的东西，追到柜）',
+      branchB: '问遗憾（先问他没说出口的那桩旧事）',
+      doneA: "（本节归档。）",
+      doneB: "（本节归档。）",
+    },
+  },
+  /* v3.5 批次 5 增量 · P08 第三份材料——源＝落位切片（2ce740e0…）＋终表 §5.2（A/B 面词面）＋P-4 基线 §三（chipsOrder 首见序）；
+     46 行词面/同义/维度 verbatim 对 beats.mjs（HEAD 3b9efae 形）；triggerAfter=候选 A（段落数−1）＝项目 seq=1092 终值；
+     选项展示行「→ 计分标注」已剥离（§四.1 第⑤条机防）；branch/done 裁剪形延伸＝branchA/B←选项行剥离形、done←既载「（本节归档。）」；提示语←活动行；建议词≡chips。 */
+  p08: {
+    probe: true,
+    lexicon: [
+      {kw:'账本', syn:['私账','鞋垫里的账','那笔账'], map:'S', L2:true, label:'鞋垫里的账',
+       block:'你先问脚下那本：谁记的、搁在哪双鞋里，开不开由他，你想看它摊在桌上。'},
+      {kw:'发票', syn:['时间不对'], map:'S', L2:true,
+       block:'票上一个日子，先对字再对数：哪天开的、开给谁。'},
+      {kw:'出借本', syn:['老孟头那本','本上有他一行'], map:'S', L2:true,
+       block:'去铺子翻那本：一行一行数，他进出过几回。'},
+      {kw:'摸向鞋垫', syn:['手摸向鞋垫'], map:'S', L2:true,
+       block:'盯这一下手的落点：话还没到，手先到了。'},
+      {kw:'睡觉不关灯', syn:['开着灯睡'], map:'S', L2:true,
+       block:'灯夜夜亮着：先想谁睡得着，再想他怕的是黑还是背后。'},
+      {kw:'没脱鞋', syn:['鞋不离脚'], map:'S', L2:true,
+       block:'鞋在他脚上：他连睡觉都穿着，你想先看它夜里怎么放、白天在不在。'},
+      {kw:'笑得很开', syn:['笑着说'], map:'N', L2:true,
+       block:'他在哪一句笑开，你记下来：笑着接的话，你想再听一遍。'},
+      {kw:'报的警', syn:['他只肯讲到这儿'], map:'N', L2:true,
+       block:'他把顺序讲了一遍：哪一响、哪一步。你记下讲法，不替他坐实。'},
+      {kw:'撑场面', syn:['老孟头不信'], map:'N', L2:true,
+       block:'自述先接住，再找旁证：出借哪几回，本里记了没有。'},
+      {kw:'说清的人', syn:['唯一能说清'], map:'N', L2:true,
+       block:'这句自述分两格放：一格装生意，一格装口供，先不并。'},
+      {kw:'另有一笔', syn:['写给谁不记'], map:'N', L2:true,
+       block:'一行数目压在页脚：顺着往下行，买家不在纸上。'},
+      {kw:'没留尾巴', syn:['来看那笔买卖'], map:'N', L2:true,
+       block:'先对他进山那一步：来看尾，还是来收账，两格都留着。'},
+    ],
+    chipsOrder: ['睡觉不关灯','笑得很开','发票','另有一笔','撑场面','出借本','报的警','摸向鞋垫','账本','没脱鞋','说清的人','没留尾巴'],
+    body: [
+        {t:'p', x:'刀疤是山货贩子，山下的货他十三岁就开始倒。这一间屋的灯，他睡觉不关灯，开着灯睡。有人讲他怕黑，他自己补了半句：怕的哪儿是黑，怕的是背后。他笑得很开，说话响，眼睛不在你脸上，扫的是出口，再扫下家。'},
+        {t:'p', x:'他先搁下第一样：一张<b>发票</b>。你还没问完，他先笑着说："你记性真好。"反问回来了，票上的事却没答。票上一个日子，本上一个日子，两个日子隔着几天——发票的时间不对。他自称喝完酒记岔了。'},
+        {t:'p', x:'枪线他讲得慢。五月那笔账，卖给庄伯年，没开票，走的是私账；那价他说出口过一回："够全家吃五年。"账页底下还压着一行，有数目，无买家——另有一笔，写给谁不记。'},
+        {t:'p', x:'枪他也不是只卖过。他常去老孟头铺子里"借"，自述是撑场面，他也知道老孟头不信。铺子里出借本上有他一行；老孟头那本，你还没去翻。'},
+        {t:'p', x:'那晚的事，他只肯讲到这儿：第一个发现的是他，第一个报的警也是他。"我是听到枪声才跑来的，"他说，"我只是路过。"枪响前后他踩在哪一步，材料替他坐实不了——这一段，只有他的嘴。'},
+        {t:'p', x:'报警之前，他先把那本账藏进了鞋垫。可你对着"账"一个字说下去，话还没落地，他的手摸向鞋垫。<b>鞋垫里的账</b>，就在那双他自己睡觉也穿着的鞋里：白天黑夜，鞋不离脚，到你这儿坐着，没脱鞋。鞋脱不脱、账本翻开给谁看——由他；你不先伸手。'},
+        {t:'p', x:'他肯说的，都笑着讲完了。他说他怕的不是账在，是怕当那个唯一能说清的人。"我进山，是来看那笔买卖的——没留尾巴。"他到的时候，老庄主已经死了——这一点，材料倒坐实了。'},
+        {t:'p', x:'材料归档时，发票收进匣子。他的鞋还在他脚上。下一条落笔，是逼他把那本不见光的账交出来，还是先去查出借本上他那一条线——两头，只能先落一头。'}
+    ],
+    decision: {
+      triggerAfter: 7,
+      symmetric: true,
+      prompt: '刀疤把发票搁上桌、用一句反问把"时间不对"先滑过去之后，坐着等下一条问题。读者二选一：下一条先攻哪一头——先逼他脚下那本没见光的账，还是先顺他借枪那条线去查铺子里的本 ',
+      lines: [["A", '逼交账本（先攻账：私账、鞋垫、两笔的数目）'], ["B", '查借枪记录（先攻枪：放账，顺出借本查他的进出）']],
+      trust: ['逼交账本','交账本','要账本','把账交出来','让他交私账','翻那本私账','当面点账','逼他交底','讨那本账','要他掏账','开他的私账','账本交出来'],
+      doubt: ['查借枪记录','查借枪','查枪','翻出借本','看老孟头那本','去铺子翻本','借枪那条线','顺那本查枪','对出借的日子','查他进出几回','本上那一行','查老孟头'],
+      branchA: '逼交账本（先攻账：私账、鞋垫、两笔的数目）',
+      branchB: '查借枪记录（先攻枪：放账，顺出借本查他的进出）',
+      doneA: "（本节归档。）",
+      doneB: "（本节归档。）",
+    },
+  },
+  /* v3.5 批次 5 增量 · P09 档案暗格——源＝落位切片（2ce740e0…）＋终表 §5.3（A/B 面词面）＋P-4 基线 §三（chipsOrder 首见序）；
+     46 行词面/同义/维度 verbatim 对 beats.mjs（HEAD 3b9efae 形）；triggerAfter=候选 A（段落数−1）＝项目 seq=1092 终值；
+     选项展示行「→ 计分标注」已剥离（§四.1 第⑤条机防）；branch/done 裁剪形延伸＝branchA/B←选项行剥离形、done←既载「（本节归档。）」；提示语←活动行；建议词≡chips。 */
+  p09: {
+    probe: true,
+    lexicon: [
+      {kw:'没拆的信', syn:['保险柜','一直没拆','还搁着'], map:'S', L2:true,
+       block:'封着的东西你停一下：拆开是早晚的事，你想先弄清哪天拆。'},
+      {kw:'旧布鞋', syn:['没人认领','那双鞋'], map:'S', L2:true,
+       block:'鞋你停一下：一双没人认领过的鞋，你想先问它的来处。'},
+      {kw:'封口', syn:['封口没拆','没拆开过'], map:'S', L2:true,
+       block:'封口你先对一遍：拆没拆过，纸自己会答。'},
+      {kw:'一个字都不接', syn:['缩回去'], map:'S', L2:true,
+       block:'这一格你只记位置：缩回去的手停在哪儿、什么时候停的。'},
+      {kw:'碰到烫的东西', syn:['烫到'], map:'S', L2:true,
+       block:'碰到烫的东西这一格你记场合：哪句话过去，手先动了。'},
+      {kw:'那两个字', syn:['咽回去'], map:'N', L2:true,
+       block:'两个字你先留白：柜前你只记下她绕开的那一格。'},
+      {kw:'寄信的人', syn:['那位母亲'], map:'N', L2:true,
+       block:'寄信的人你想多见一层：那双手是把信递进来的，你想先对日子。'},
+      {kw:'记得', syn:['听了就忘不掉','有人来过'], map:'N', L2:true,
+       block:'这一格你先停在半空：她要人记得的是哪一桩，你想先听一句。'},
+      {kw:'都是十年前的事了', syn:['十年前的事了'], map:'N', L2:true,
+       block:'一句话把十年折过去：折进去的是哪几天，你先想。'},
+      {kw:'你最近怎么样', syn:['先问一句'], map:'N', L2:true,
+       block:'头一句先接住：她问的是你这个人，还是你家那本难处，你想分开听。'},
+      {kw:'等她开口', syn:['没人接话'], map:'N', L2:true,
+       block:'人都在等她、她在等什么话，这两层你先分开。'},
+      {kw:'她签的', syn:['签的字不一样'], map:'N', L2:true,
+       block:'这一笔你放慢看：签的时候，屋里还有哪些人。'},
+    ],
+    chipsOrder: ['记得','你最近怎么样','都是十年前的事了','她签的','那两个字','等她开口','碰到烫的东西','一个字都不接','没拆的信','封口','旧布鞋','寄信的人'],
+    body: [
+        {t:'p', x:'沈知秋是校长，这一带的难处她家家记得。沈校长有个习惯：先问一句"你最近怎么样"，再谈正事。她的法子写在旧档案里——先记住每个孩子家的情况，再决定怎么跟家长开口；哪家的孩子怎么了，她听了就忘不掉。'},
+        {t:'p', x:'有人请她翻那桩旧案，她只回一句："都是十年前的事了。"那年出的事，校方定的是意外，她也签了。可要她再提这一层，她签的字不一样——这十年，她把那两个字咽回去过多少回，只有她自己知道。'},
+        {t:'p', x:'这一带没有她不认得的人，谁都在等她开口。真东西在校长办公室的保险柜里：上了锁，没人碰过。'},
+        {t:'p', x:'她迟疑了很久才去开柜——手伸到半空，缩回去，像碰到烫的东西。柜开了。你若把话头往那两个字上引，她一个字都不接。'},
+        {t:'p', x:'柜里两样东西并排。一封<b>没拆的信</b>——她一直没拆，还搁着，封口没拆开过；有人问起信里写什么，她说没读过。同格一双<b>旧布鞋</b>：那年出事的学生被人捞起来的时候，浑身就这一样东西，没人认领。'},
+        {t:'p', x:'寄信的人，是那位母亲；鞋，是那个学生的。这层关系，她没再往下说。她说，鞋她收着，是替那具尸体留的：总要有人记得，有人来过。'},
+        {t:'p', x:'材料归档时，两样东西都还在原地，柜前没人接话。下一条落笔，是先碰那封没拆的，还是先问那双鞋是谁的——先碰哪一样、落在哪一样，你定。'}
+    ],
+    decision: {
+      triggerAfter: 6,
+      symmetric: true,
+      prompt: '沈知秋迟疑之后打开保险柜、信与旧布鞋都露在柜格里之后，她退开半步等你先开口。读者二选一：先碰哪一件——先拿那封没拆的信，还是先问那双没人认领的鞋 ',
+      lines: [["A", '拿信（追因果）'], ["B", '问鞋（追人情）']],
+      trust: ['拿信','拿走那封信','要那封信','先看那封信','拆那封信','把那封信拿走','信给我','那封信给我','拿没拆的信','先看那封没拆的','动手拿信','先碰信'],
+      doubt: ['问鞋','问那双鞋','那双鞋是谁的','鞋是谁的','谁的鞋','布鞋是谁的','问旧布鞋','旧布鞋的来处','先问那双鞋','那鞋谁家的','问那双鞋的来处','布鞋来处'],
+      branchA: '拿信（追因果）',
+      branchB: '问鞋（追人情）',
+      doneA: "（本节归档。）",
+      doneB: "（本节归档。）",
+    },
+  },
+  /* v3.5 批次 5 增量 · P10 深水区——源＝落位切片（2ce740e0…）＋终表 §5.4（A/B 面词面）＋P-4 基线 §三（chipsOrder 首见序）；
+     46 行词面/同义/维度 verbatim 对 beats.mjs（HEAD 3b9efae 形）；triggerAfter=候选 A（段落数−1）＝项目 seq=1092 终值；
+     选项展示行「→ 计分标注」已剥离（§四.1 第⑤条机防）；branch/done 裁剪形延伸＝branchA/B←选项行剥离形、done←既载「（本节归档。）」；提示语←活动行；建议词≡chips。 */
+  p10: {
+    probe: true,
+    lexicon: [
+      {kw:'陈望', syn:['那个人名','认得'], map:'N', L2:true,
+       block:'这个名字你先放平：他听清了，也只说到认得为止；再往深处问，得换别的绳头。'},
+      {kw:'对不起', syn:['没再说别的'], map:'N', L2:true,
+       block:'这句你先停在原处：话没落对象——你想先从说这句话的人入手，还是从听见这句话的人入手，一层层来。'},
+      {kw:'你愿意讲讲吗', syn:['要不要说'], map:'N', L2:true,
+       block:'这句开场你先接住：他问的是你要不要讲，不是他要讲到哪儿——两头分开，你别并着答。'},
+      {kw:'递水', syn:['放到你手边'], map:'S', L2:true,
+       block:'这杯水的手你先记着：进门第一着就是这个稳当——这份稳当替他挡过什么话，你想先揭一层。'},
+      {kw:'温度刚好的水', syn:['不烫不凉'], map:'S', L2:true,
+       block:'这杯水温你自己验：十六年的准头没走样——这份准头是功夫还是盔甲，两读你都留着。'},
+      {kw:'微微停顿', syn:['手停了一下'], map:'S', L2:true,
+       block:'这一停你先记下落点：手指搭在杯沿停住的那一下，是哪句话过去的——把话再摆一遍，你就能对上。'},
+      {kw:'不抢话', syn:['把话说完'], map:'S', L2:true,
+       block:'他不接的这半拍你先称一称：节奏全在他手里——你等的和他等的，你想先问哪一头。'},
+      {kw:'我值夜班', syn:['当值那晚'], map:'N', L2:true,
+       block:'这三个字你先称分量：他说出口的时候就知道别人会怎么听——先问概率，还是先问过意不去，分头问，别并成一句。'},
+      {kw:'不替别人定罪', syn:['当事人自己开口'], map:'N', L2:true,
+       block:'这句原则你问到底：他不替人定罪，可心里那杆秤总有个刻度——你想先量哪一边，你自己拿。'},
+      {kw:'没多写一个字', syn:['病历'], map:'N', L2:true,
+       block:'这一页你先看空白：纸上没落下的字，比落下的多——你想先翻哪一页。'},
+    ],
+    chipsOrder: ['你愿意讲讲吗','递水','温度刚好的水','不抢话','陈望','对不起','我值夜班','不替别人定罪','微微停顿','没多写一个字'],
+    body: [
+        {t:'p', x:'顾言从省城来，做了十六年临终关怀护工，陪过三个"意外"断气的晚期病人。他进屋先把水放到你手边，再开口，头一句总是那句"你愿意讲讲吗"——要不要说，你先点头，他才往下谈。递水的规矩他守了十六年：只递温度刚好的水，不烫不凉，顺手就能端起来。他的准则三条：不评价，不劝，不改变；你不把话说完，他不接，也从不抢话。'},
+        {t:'p', x:'三年前，庄主病重，点名要他回来照看了一个月。庄主糊涂以后反复念<b>陈望</b>，一遍，又一遍。旁人来问，顾言只说那个人名他认得——在哪儿听来的，不讲。'},
+        {t:'p', x:'庄主清醒的时候叫他"小顾"，像叫一个还欠着家的人。有一回屋里只剩他们两个，庄主看着他，说了句"对不起"——没指明是哪个人的，也没再说别的。顾言把这句话记到今天，没对任何人讲起。'},
+        {t:'p', x:'问起旧事，他能讲的只有一句"<b>我值夜班</b>"。那三个晚期病人，都赶在他当值那晚走的；概率讲得通，他心里过不去。他知道这三个字在别人耳朵里是什么分量，所以不多说，也不辩解。他的原则摆在前头：不替别人定罪，也不接别人递来的定罪；他等的是当事人自己开口。'},
+        {t:'p', x:'你把话头转回去，仍绕着他念的那个词——他的手指搭在杯沿，微微停顿，手停了一下，像一枚还没按下就被收回的音符。他看着你，不催，也不替你接。'},
+        {t:'p', x:'顾言离开猎庄以后，每月十五都有一笔款汇出去，从没留名。汇了多少年，他自己数过，没告诉任何人。这个人嘴上严，笔下也严：十六年，病历上没多写一个字。该谁说的话，他等着——等说的人把话讲完，再自己开口。'},
+        {t:'p', x:'这一场的话记完，归进卷宗。款、水、停顿，各在各的格子里；他说出的和没说出的，都摊在你面前。你要往哪头走——是顺着细节往里追，还是把他自己的立场问他个明白。你先落哪头，这拍算你的。'}
+    ],
+    decision: {
+      triggerAfter: 6,
+      symmetric: true,
+      prompt: '顾言把召回照看、病中念名、那句没对象的道歉和他自己的原则都摆齐了，杯里的水没动，停顿也只给过一次。读者二选一：顺着临终记忆的细节往里追，还是掉转话头问他自己信谁 ',
+      lines: [["A", '追细节（事实先说话）'], ["B", '问他信谁（立场先说话）']],
+      trust: ['追细节','再问细节','多问一层','把细节问一遍','问细一点','追问病中念的事','临终那几天再问问','再往里追一层','把病里的事问细','细节里再走一遍','接着往下追','往细处再问一句'],
+      doubt: ['问他信谁','你信谁','他信谁','信谁呢','反过来问他信什么','问他自己站哪边','他的立场先问清','倒问他一句','他信哪个','问他自己怎么选','他心里的秤往哪边','他自己信谁'],
+      branchA: '追细节（事实先说话）',
+      branchB: '问他信谁（立场先说话）',
+      doneA: "（本节归档。）",
+      doneB: "（本节归档。）",
+    },
+  },
+  p11: {
+    /* v3.3=seq=614 落位增量。P11 词库正常采 S/N（13 行=S7/N6，r2 基线 be35eb66/4c0b772e verbatim）；
+       决策点只计 E/I（A 追那人→E+1、B 回枪案→I+1 直对应——服务端 MBTI 轨，原型不呈现维度/分值）、定罪不计、
+       其他选择不计 S/N（L29 逐字子句）。E/I 全路径唯一最低采样位——两选项均计分、任一有效落笔即完成采样。
+       词库数组序＝落位件表行序；chips 展示序＝chipsOrder（S-1 正文过手序，四处一致）。
+       「天亮之前，别回头」词面保 canon 逗号逐字形入 L2 独立词条——命中三路靠 denorm 比较面（seq=614 裁定六①提前收口）。
+       追那人/回枪案 X2 全出＝不在词库/chips/建议词；决策解析器面正常开放（终表 §三）。无计时器、无 forced 态。 */
+    probe: true,
+    chipsOrder: ["壁画","轮廓","画给你看","车被开走","没对任何人讲","相册里的车","那出戏不吉利","旧戏箱","彩排录像","改了戏词","天亮之前，别回头","那张票","同一个人"],
+    lexicon: [
+      {kw:"壁画", syn:["画出来的"], map:"S", L2:true,
+       block:"这面墙不用翻，一眼就在：颜料底下压着她见过的东西。问墙，还是问画的人，两条绳头都在你手里。"},
+      {kw:"轮廓", syn:["画里的人"], map:"S", L2:true,
+       block:"这些人影都还没处安放：你想替哪一道对上号，先回墙上来对——口供之前，轮廓到轮廓为止。"},
+      {kw:"车被开走", syn:["凌晨前"], map:"N", L2:true,
+       block:"这一段没有点数，只有先后：车离开庄门的时候，庙里的窗正对着。想验这段目击，先找那个能画下它的人。"},
+      {kw:"彩排录像", syn:["画质极差"], map:"S", L2:true,
+       block:"这盘东西只有她看得清：你要的那一眼得借她的眼睛——请她指认，或等她想说的那天，两条都得先过她那关。"},
+      {kw:"旧戏箱", syn:["戏箱留着"], map:"S", L2:true,
+       block:"箱没锁，话没开：东西都在，等一个肯拿出来的人。你想先翻箱，还是先问人为什么留到今天。"},
+      {kw:"那张票", syn:["寄件人没署名"], map:"S", L2:true,
+       block:"票在你手上，落笔的人不在：字和纸任选一条查下去，都查不到署名。想够到递绳子的那只手，先固定这张。"},
+      {kw:"天亮之前，别回头", syn:["唱到那句就停"], map:"S", L2:true,   /* 标点归一定版：词面/chip 保逗号逐字形，匹配层双轨比较面（v3.3） */
+       block:"一句词，两个人记得过，如今只剩一个人唱：他每回唱到这儿自断一截。顺着词去够写字的人，还是先问他为什么留原词——分头问。"},
+      {kw:"相册里的车", syn:["对上了"], map:"S", L2:true,
+       block:"东西替他记着，这一页和墙上那辆对上了——\u201c巧合\u201d两个字抹不平。先固定哪一样，你挑。"},
+      {kw:"画给你看", syn:["点头摇头"], map:"N", L2:true,
+       block:"她的话在画上不在嘴上：这句\u201c画给你看\u201d就是她的开口。你要她画哪一部分，得先把题目问对。"},
+      {kw:"那出戏不吉利", syn:["先说不吉利"], map:"N", L2:true,
+       block:"一句挡架的话后头顶着半出旧戏：她越说不吉利，你越要分清——挡的是问话，还是那段改过的词。"},
+      {kw:"改了戏词", syn:["老戏底子新词"], map:"N", L2:true,
+       block:"词改了，戏架子没动：新词对的是哪桩旧事，你手上没有全本。要全本，得从留着它的人手里一页页请。"},
+      {kw:"同一个人", syn:["都对得上"], map:"N", L2:true,
+       block:"四条来路收成一个影子：称呼还没走到那儿，人影钉在这四样每一笔上——先把人影钉实，还是顺着票摸回寄件人，各走各的，挑一样起步。"},
+      {kw:"没对任何人讲", syn:["从不说破"], map:"N", L2:true,
+       block:"这几处沉默各押着一件事：压得越久，越经不起当面一问。你挑哪一个先问——问到的人自己答，笔在他手里。"},
+    ],
+    body: [
+      {t:"p", x:"阿朵是猎庄本地人，山神庙看庙人的女儿，给庙里画<b>壁画</b>，一画就是三年。她话极少，问多了只点头摇头；被问得急了，她说<em>\u201c画给你看\u201d</em>。壁画上画出来的不是临摹——她见过什么，就画什么。墙上那些轮廓，全是不该出现的人；画里的人是谁，她从不说破。该收的收进墙里，像给懂得看的人留的，不等谁来问。"},
+      {t:"p", x:"案发那一夜她在庙里补墙上的裂口，窗子正对庄门口。她看见的事只有一件：凌晨前，车被开走。牌照让树影挡着，完整号码她早记住了——只是不落进话里，全画进了壁画角落：车、尾灯、牌照的位置，一笔一笔。有人顺着问，她没对任何人讲。"},
+      {t:"p", x:"林一从南边镇上过来，自由摄影师，拍婚庆、拍全家福、拍山村纪录片，庄里每个人都进过他的镜头。他抱来自己那个旧系列《十三》，说<em>\u201c照片就是我的快乐档案\u201d</em>。翻到某一页，他慢了下来——相册里的车，跟壁画角落那辆，车轮廓对上了。阿朵知道他在拍，他知道自己拍到了什么，两个人不需要说话。"},
+      {t:"p", x:"秋月带着草台戏班路过庄上，唱过几台老戏。那出老戏《三更雨》，前些年唱得少了——戏是老戏底子新词，词是庄主当年改的，她长大才把新词听出别的东西。有人问起《三更雨》，她先说不吉利：<em>\u201c那出戏不吉利。\u201d</em>唱照唱。她把来路留得很全：旧词留着，旧戏箱留着，箱底还有一盘彩排录像，画质极差，只有她自己看得清——本该空着的后台，多了一个人，不是戏班的，是猎庄的。她认出过那个人；认出的是谁，她没对任何人讲。她父亲临终留过一句\u201c唱完之后有人改了戏词\u201d。她的法子是唱，不是讲——让真相从戏里自己走出来。"},
+      {t:"p", x:"江迟是外来人，自由编剧，在酒吧驻唱。他女友半年前失踪，警方定性\u201c离家出走\u201d，他不信。失踪前三天，女友让他改掉一句词——<em>\u201c天亮之前，别回头\u201d</em>。他改了，原词却偷偷留着；他每天唱同一支歌，唱到那句就停，嗓子像被卡住。三个月前他收到一张票：寄件人没署名，票上印的正是那句被改掉的词。知道这句词的，除了他和她，只剩一个\u201c在猎庄见过的人\u201d。他十二岁随家里来过猎庄，记得山神庙的壁画——上面有一个轮廓，不像猎庄人。他是被一张票钓来的；钓的人是谁，他不知道。"},
+      {t:"p", x:"四样东西在你面前摆成一排：墙上的轮廓、相册里的车、录像里多出来的那个人、那张票上印的那句词。画的、拍的、留的、寄的，四条来路，都对得上——收拢来，像<b>同一个人</b>。这个人是谁，庄里没有一个人先开口；轮廓到轮廓为止，称呼还没人落下。你不替它落字，它也不催你。"},
+      {t:"p", x:"话说到这儿，道岔露出来了。一头往外：四个人、四件物都过了你的手，顺着这道影子追下去，追到那人是谁为止；一头收回来：先把新线搁下，回到枪案，把旧证重新核一遍。往外还是收回，起步走哪条道，看你的。"},
+    ],
+    decision: {
+      triggerAfter: 5,
+      title: "道岔露出来了，起步只走一条",
+      prompt: "四条来路收成一个影子，可没有一个人先开口。往外还是收回——写下你起步走的那条道。",
+      lines: [
+        ["A","追那人——四个人、四件物都过了你的手，顺着这道影子往外追，追到那人是谁为止。"],
+        ["B","回枪案——先把新线搁下，回到枪案，把旧证重新核一遍。"],
+      ],
+      /* 终表 §三：双主动选题型 symmetric=true（五则·否定前置作废同 P06）。
+         A/B 面 24 串＝r2 草稿 §三分叉解析行 verbatim（入册引用形系服务端终表 §五）。
+         `谁`只存 A 面词面一处、`枪`⊂B 面四串＝L48 登记形——分叉轨不读词库，两轨隔离，最长匹配天然消解。 */
+      symmetric: true,
+      trust: ["追那人","去追那人","顺着影子追下去","四条线并起来追","把影子追到底","往外追着问","先认清那道影子","把四个人再问一遍","顺着这条线往外追","再往深里追一层","追到人是谁为止","往猎庄外头追"],
+      doubt: ["回枪案","回到枪案","回到案子本身","先把新线搁下","折回枪案旧证","重新核一遍旧证","把物证再过一遍","枪案从头对一遍","旧证摊开重看","先回去核物证","新线放一放","先回到证据上来"],
+      branchA: "你把四样东西按过手的顺序排成一排——墙、相册、戏箱底那盘录像、那张票——照着影子的走向，先认清那道轮廓。四个人各自答了一句，合不拢的地方你记下来；称呼还是没人落下。你带着这道影子往外走。",
+      branchB: "你把新线轻轻搁回桌下，从案头抽出旧证：登记、流转、口径，从头再对一遍。墙上那道轮廓、票上那句词，都等你回头再走。",
+      doneA: "（影子带出门，本节归档。）",
+      doneB: "（旧证摊开重看，本节归档。）",
+      tipAmb: "往外要追，收回要核——道岔只等你一步。想清楚，写一条。",
+      tipNone: "道岔露出来了。往外还是收回——写下你起步的那条道。",
+    },
+  },
+  p12: {
+    /* v3.4=seq=722 裁定增量：P12 空场景运行时载体（R-7 P12 半项）。
+       零池行＝检索命中轨不产生得分（chipsFor 空集＝容器空、建议词位置空）；
+       probe=false＝零 S/N 采样触点；decision=null＝无分叉面（R-8 段首采系服务端口径，不扩面）；
+       无计时器、无 forced；呈示位仅 canon 三行提示语＋尾句逐字（verbatim 源＝落位件 b20cafee…
+       /r2 草稿 e60adf35… 正文域已核逐行一致；弯引号为展示层字形——O-4/外框不入 verbatim 断言）。 */
+    probe: false,
+    lexicon: [],
+    body: [
+      {t:"quote", x:"\u201c他守了一辈子规矩，最后却……\u201d"},
+      {t:"quote", x:"\u201c账，总要在某人那里了结……\u201d"},
+      {t:"quote", x:"\u201c那把老枪，身上的划痕比口供更早说话……\u201d"},
+      {t:"p", x:"你落笔，卷就合上。"},
+    ],
+    decision: null,
+  },
+};
+
+/* 动作词黑名单（G11，全局）：不进 chips/建议词；决策层词面与展示域隔离 */
+const ACTION_BLACKLIST = ["拒签","开盖","验针","复查","签字栏"];
+/* X2 排除词（全层级出）：输入时走统一未匹配兜底（R4），不出现在建议词。
+   P06 的 追账/查账 X2=词库层全无（p06.lexicon 无该行），无需兜底注记；决策解析器面正常开放（终表 §三） */
+const X2_EXCLUDED = { p05: ["送修单"] };
+
+const state = {};   /* 每拍内部状态，仅内存：inputs / fork_typed / first_decision / probe */
+
+function newState(){
+  return { inputs:[], forkTyped:[], firstDecision:null, timeoutForced:false, probe:{}, decisionsMade:{} };
+}
+
+/* ---- 匹配引擎（§四.1） ----
+   1. 归一化：去空白、统一全角标点为半角比较面（保留原文用于展示）
+   2. 全部候选命中（关键词+同义词，子串命中），取最长命中
+   3. 最长命中并列且映射相同 → 归一行；异维并列 → 判 0 + 记日志
+   4. 一次输入只计一次命中：只报 1 行，禁子串回溯叠计 */
+function normalize(s){
+  return s.replace(/\s+/g,"")
+          .replace(/[：]/g,":").replace(/[，]/g,",")
+          .replace(/[。]/g,".").replace(/[“”]/g,'"')
+          .toLowerCase();
+}
+/* v3.3 / seq=614 裁定六①提前收口（标点归一定版口径）：比较面去标点归一——
+   denorm=原归一面基础上再剔除标点集，供 matchEntry 双轨比较面使用。
+   仅入匹配比较面：展示域零触碰（chips/建议词/返回块/正文/未匹配文案仍按原词面呈现，
+   歌词行保 canon 逗号逐字形）；parseDecision 不使用 denorm（两轨隔离——分叉轨不读词库，
+   24 面串无标点；B3 不变式范围＝词库命中集合）。 */
+const PUNCT_STRIP = /[，。、；：！？,.;:!?"'“”‘’（）()《》〈〉【】\[\]{}\-—－…·~]/g;
+function denorm(s){ return normalize(s).replace(PUNCT_STRIP, ""); }
+function matchEntry(input, lexicon){
+  const n = normalize(input);
+  if(!n) return null;
+  const nd = denorm(input);            /* 无标点比较面（v3.3 双轨） */
+  let bestLen = 0;
+  const hits = [];
+  for(const e of lexicon){
+    const words = [e.kw, ...e.syn];
+    let hitLen = 0;
+    for(const w of words){
+      if(w.length > hitLen && (n.includes(normalize(w)) || (nd && nd.includes(denorm(w))))) hitLen = w.length;
+    }
+    if(hitLen > 0){
+      hits.push({entry:e, len:hitLen});
+      if(hitLen > bestLen) bestLen = hitLen;
+    }
+  }
+  if(!hits.length) return {type:"miss"};
+  const top = hits.filter(h => h.len === bestLen);
+  const maps = new Set(top.map(h => h.entry.map));
+  if(maps.size > 1){
+    return {type:"zero", entries:top.map(h => h.entry.kw)};   /* 异维多命中判 0 */
+  }
+  const merged = new Map();
+  for(const h of top) merged.set(h.entry.kw, h.entry);        /* 同维并列归一 */
+  const lines = [...merged.values()];
+  if(lines.length > 1){
+    return {type:"zero", entries:lines.map(l => l.kw)};       /* 歧义判 0（同维多行不可分辨） */
+  }
+  return {type:"hit", entry:lines[0]};
+}
+
+/* ---- chips（§四.5：只取本拍 L2 集，标签可降档；X2/动作词永不进） ---- */
+function chipsFor(scene){
+  const out = [];
+  for(const e of scene.lexicon){
+    if(!e.L2) continue;
+    if(ACTION_BLACKLIST.some(b => (e.label||e.kw).includes(b))) continue;  /* 机器防线 */
+    out.push({word:e.kw, text:e.label || e.kw});
+  }
+  if(scene.chipsOrder){   /* v3.3/S-1：chips 展示序（P11＝正文过手序）；词库数组序不动（verbatim 对落位件表行序） */
+    const idx = new Map(scene.chipsOrder.map((w,i) => [w,i]));
+    out.sort((a,b) => (idx.has(a.word)?idx.get(a.word):999) - (idx.has(b.word)?idx.get(b.word):999));
+  }
+  return out;
+}
+
+/* ---- 未匹配兜底（§四.6 统一文案 + 建议词=L2 标签） ---- */
+function missText(raw, sceneKey){
+  const x2 = (X2_EXCLUDED[sceneKey]||[]);
+  const isX2 = x2.some(w => normalize(raw).includes(normalize(w)));
+  let t = '没有找到关于\u201c' + escapeHtml(raw) + '\u201d的直接线索。';
+  if(isX2) t += '（该物件不在本节可问清单。）';   /* R4 中性重述；不列选项、不暴露排除机制 */
+  return t;
+}
+
+/* ---- 决策解析（无按钮，自由输入隐式分叉；§四.4：不进 S/N 词库）
+   v2 / 终表 §四#5：混合命中按最长匹配消解——doubt 命中面包含 trust 命中面
+   （如「不肯落笔」⊃「落笔」）判 B，恢复「不落笔类否定词面归 B」冻结口径；
+   仅无包含关系的真并存（如"我信他，但先说明白"）判 amb 重问不采分。
+   v3 / 终表 §三：P06 双主动选题型 symmetric=true——不适用 doubt 优先/否定归 B，
+   两侧对称：仅承通用规则（复合词面、禁单字、包含按最长匹配消解、真并存 amb 重问
+   一次不采分、不占 first-decision-wins）。 ---- */
+function parseDecision(raw, dec){
+  const n = normalize(raw);
+  /* 否定紧邻前置判定（不/没/别/未）：v2=非对称侧「否定保护（归 B 组合）」；
+     v3.1/seq=241 裁定 2·终表 §三五则=symmetric 侧「否定作废」——命中剔除、不按原侧计分 */
+  const NEG = /(不|没|别|未)\s*$/;
+  const pos = (w) => {   // 至少一处命中未被否定词紧邻前置
+    const nw = normalize(w);
+    let from = 0, idx;
+    while ((idx = n.indexOf(nw, from)) !== -1) {
+      if(!NEG.test(n.slice(0, idx))) return true;
+      from = idx + 1;
+    }
+    return false;
+  };
+  const hit = (list) => list.filter(w => n.includes(normalize(w)));
+  if(dec.symmetric){
+    const a = hit(dec.trust).filter(pos), b = hit(dec.doubt).filter(pos);
+    if(a.length && !b.length) return "A";
+    if(b.length && !a.length) return "B";
+    if(!a.length && !b.length) return "none";
+    const aWrap = a.some(aw => b.some(bw => normalize(aw).includes(normalize(bw))));
+    if(aWrap) return "A";
+    const bWrap = b.some(bw => a.some(aw => normalize(bw).includes(normalize(aw))));
+    if(bWrap) return "B";
+    return "amb";
+  }
+  /* 否定保护（「不落笔类否定词面归 B」冻结口径的解析层实现，不改终表词面）：
+     trust 命中面被否定词紧邻前置时，不算 trust 命中，记为否定组合 doubt 命中 */
+  const d = hit(dec.doubt);
+  const tPos = dec.trust.filter(w => pos(w));
+  const tNeg = dec.trust.filter(w => !pos(w) && n.includes(normalize(w))).map(w => "不" + w);
+  const t = tPos;
+  const dAll = d.concat(tNeg);
+  if(dAll.length && !t.length) return "B";
+  if(t.length && !dAll.length) return "A";
+  if(!dAll.length && !t.length) return "none";
+  /* 混合命中：doubt 命中面包含某 trust 命中面（否定组合）→ 包含按最长匹配消解判 B；
+     无包含关系的真并存（如"我信他，但先说明白"）→ amb 重问不采分。反向包含按同构判 A。 */
+  const dWrap = dAll.some(dw => t.some(tw => normalize(dw).includes(normalize(tw))));
+  if(dWrap) return "B";
+  const tWrap = t.some(tw => dAll.some(dw => normalize(tw).includes(normalize(dw))));
+  if(tWrap) return "A";
+  return "amb";
+}
+
+function escapeHtml(s){
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+/* ================= 渲染与交互 ================= */
+function renderBody(sk){
+  const host = document.getElementById(sk + "-body");
+  host.innerHTML = SCENES[sk].body.map(b => {
+    if(b.t === "quote") return '<blockquote class="quote">' + b.x + '</blockquote>';
+    if(b.t === "marginalia") return '<blockquote class="marginalia">' + b.x + '</blockquote>';
+    return '<p>' + b.x + '</p>';
+  }).join("");
+}
+function renderChips(sk){
+  const host = document.getElementById(sk + "-chips");
+  host.innerHTML = "";
+  for(const c of chipsFor(SCENES[sk])){
+    const btn = document.createElement("button");
+    btn.className = "chip"; btn.type = "button"; btn.textContent = c.text;
+    btn.setAttribute("data-word", c.word);
+    btn.addEventListener("click", () => {
+      const input = document.getElementById(sk + "-input");
+      input.value = c.text;
+      submit(sk);
+    });
+    host.appendChild(btn);
+  }
+}
+function logLine(sk, cls, q, a){
+  const log = document.getElementById(sk + "-log");
+  const div = document.createElement("div");
+  div.className = "entry " + cls;
+  div.innerHTML = '<div class="q">你写下：<b>' + escapeHtml(q) + '</b></div><div class="a">' + a + '</div>';
+  log.insertBefore(div, log.firstChild);
+}
+
+function maybeShowDecision(sk){
+  const st = state[sk], scene = SCENES[sk];
+  if(!scene.decision) return;   /* v3.4/P12 空场景：无分叉面（R-8 系服务端口径不扩面） */
+  if(st.firstDecision || st.inputs.length < scene.decision.triggerAfter) return;
+  if(document.getElementById(sk + "-decision").childElementCount) return;
+  const host = document.getElementById(sk + "-decision");
+  const d = scene.decision;
+  host.innerHTML =
+    '<div class="decision" id="' + sk + '-decbox">' +
+    '<h3>' + (d.title || "单联与案卷，都摊在你面前") + '</h3>' +
+    '<p>' + d.prompt + '</p>' +
+    '<div class="lines">' + d.lines.map(l => '<div><span>' + l[0] + '</span> · ' + l[1] + '</div>').join("") + '</div>' +
+    '<input type="text" id="' + sk + '-decinput" placeholder="写下你要做的那一件事……" aria-label="决策输入（无按钮，落笔即分叉）" autocomplete="off">' +
+    '</div>';
+  const di = document.getElementById(sk + "-decinput");
+  di.addEventListener("keydown", ev => {
+    if(ev.key === "Enter"){ ev.preventDefault(); decisionSubmit(sk, di.value.trim()); }
+  });
+}
+
+function decisionSubmit(sk, raw){
+  if(!raw) return;
+  const st = state[sk], scene = SCENES[sk], d = scene.decision;
+  st.forkTyped.push({t:"decision", input:raw, fork_effective:true});
+  const branch = parseDecision(raw, d);
+  if(branch === "amb" || branch === "none"){
+    /* N5：forced/归档态下 decbox 可能不存在，空引用防护 */
+    const box = document.getElementById(sk + "-decbox");
+    if(!box){
+      const note = document.getElementById(sk + "-decnote");
+      if(note) note.textContent = "这句话已经收进案卷了。";
+      return;
+    }
+    let tip = box.querySelector(".dec-tip");
+    if(!tip){ tip = document.createElement("p"); tip.className="done-note dec-tip"; box.appendChild(tip); }   /* v3.2/P3：类名含 dec-tip，选择器命中即复用替换，不再叠加 */
+    tip.textContent = branch === "amb"
+      ? (d.tipAmb || "这句话里，落笔和不落笔都有。单联只等你一道——你想清楚，只做一件。")
+      : (d.tipNone || "单联还空着。你要落的，是哪一道？");
+    return;
+  }
+  /* first-decision-wins：首次有效落笔即定，改选不覆写（forced 归档不算有效落笔，不占此位） */
+  if(st.firstDecision){ return; }
+  st.firstDecision = { branch, at: st.inputs.length };
+  const host = document.getElementById(sk + "-decision");
+  host.innerHTML =
+    '<div class="decision"><p>' + (branch === "A" ? d.branchA : d.branchB) + '</p>' +
+    '<div class="done-note" id="' + sk + '-decnote">' + (branch === "A" ? d.doneA : d.doneB) + '</div></div>';
+  document.getElementById(sk + "-hint").classList.add("hidden");
+  document.getElementById(sk + "-input").disabled = true;
+  document.getElementById(sk + "-chips").classList.add("hidden");
+  if(sk === "p05") stopClock();
+}
+
+function submit(sk){
+  const input = document.getElementById(sk + "-input");
+  const raw = input.value.trim();
+  if(!raw) return;
+  const st = state[sk], scene = SCENES[sk];
+  input.value = "";
+  st.inputs.push(raw);
+  st.forkTyped.push({t:"explore", input:raw});
+  const r = matchEntry(raw, scene.lexicon);
+  if(r.type === "hit"){
+    if(scene.probe){ st.probe[r.entry.kw] = (st.probe[r.entry.kw]||0) + 1; }
+    logLine(sk, "hit", raw, escapeHtml(r.entry.block));
+  } else if(r.type === "zero"){
+    console.info("[lint-log] 异维/歧义多命中判 0：", raw, r.entries);
+    logLine(sk, "zero", raw, '关于这几句，案卷里没有可以直接指给你看的东西。换一件，只看一件。');
+  } else {
+    const chips = chipsFor(scene).map(c => c.text);
+    logLine(sk, "miss", raw,
+      escapeHtml(missText(raw, sk)) +
+      '<div class="chips">' + chips.map(t => '<button class="chip" type="button" data-sugg>'+escapeHtml(t)+'</button>').join("") + '</div>');
+    const box = document.getElementById(sk + "-log").firstElementChild;
+    box.querySelectorAll("[data-sugg]").forEach(btn => {
+      btn.addEventListener("click", () => { input.value = btn.textContent; submit(sk); });
+    });
+  }
+  maybeShowDecision(sk);
+}
+
+/* ---- P05 赌注计时器：压力窗 16:24–17:00（演示口径：1 秒 = 1 场景分钟）
+   v2/N4：决策卡出现后时钟不暂停——赌注在决策时仍活着，压力继续走向 17:00；
+   探索阶段缓行（0.5 分/tick），决策卡出现后 1 分/tick。
+   v2/forced（seq=173 裁 + 终表 §二）：超窗 = 叙事强制归档——
+   fork_effective=false / fork_typed=forced，不计任何分（J/P 不采、定罪零流向），
+   不占 first-decision-wins 首采位；重进（此处即补采入口）后首次有效落笔仍可采。 ---- */
+let clockTimer = null, clockMin = 0;
+const CLOCK_START = 24, CLOCK_END = 36;   /* 16:24 → 17:00，共 36 分钟 */
+function fmt(min){ return "16:" + String(min).padStart(2,"0"); }
+function renderForced(sk){
+  const st = state[sk], d = SCENES[sk].decision;
+  const host = document.getElementById(sk + "-decision");
+  host.innerHTML =
+    '<div class="decision" id="' + sk + '-decbox">' +
+    '<h3>案卷落章</h3>' +
+    '<p>' + d.timeoutText + '</p>' +
+    '<p>可你刚才要落的那一道，还在你手里。要写，就现在写。</p>' +
+    '<input type="text" id="' + sk + '-decinput" placeholder="写下你本要做的那一件事……" aria-label="决策输入（补采入口，无按钮）" autocomplete="off">' +
+    '</div>';
+  const di = document.getElementById(sk + "-decinput");
+  di.addEventListener("keydown", ev => {
+    if(ev.key === "Enter"){ ev.preventDefault(); decisionSubmit(sk, di.value.trim()); }
+  });
+  document.getElementById(sk + "-hint").classList.add("hidden");
+  document.getElementById(sk + "-input").disabled = true;
+  document.getElementById(sk + "-chips").classList.add("hidden");
+}
+function startClock(){
+  if(state.p05.firstDecision || clockTimer) return;
+  const read = document.getElementById("p05-clockread");
+  const remain = document.getElementById("p05-remain");
+  const bar = document.getElementById("p05-bar");
+  const wrapEl = document.getElementById("p05-clock");
+  clockTimer = setInterval(() => {
+    if(state.p05.firstDecision){ stopClock(); return; }
+    const decShown = !!document.getElementById("p05-decbox");
+    clockMin += decShown ? 1 : 0.5;   /* N4：决策卡出现后继续走钟 */
+    const m = Math.min(CLOCK_START + Math.floor(clockMin), 60);
+    read.textContent = m < 60 ? fmt(m) : "17:00";
+    const left = Math.max(0, CLOCK_END - Math.floor(clockMin));
+    remain.textContent = left > 0 ? "离报送 " + left + " 分钟" : "报送钟到";
+    bar.querySelector("i").style.width = (Math.min(clockMin, CLOCK_END)/CLOCK_END*100) + "%";
+    if(clockMin >= CLOCK_END*0.8){ bar.classList.add("danger"); wrapEl.classList.add("danger"); }
+    if(clockMin >= CLOCK_END && !state.p05.firstDecision && !state.p05.timeoutForced){
+      state.p05.timeoutForced = true;
+      /* forced 落审计：不采分、不占首采（fork_effective=false） */
+      state.p05.forkTyped.push({t:"decision", input:null, fork_effective:false, fork_typed:"forced"});
+      stopClock();
+      renderForced("p05");
+    }
+  }, 1000);
+}
+function stopClock(){ if(clockTimer){ clearInterval(clockTimer); clockTimer = null; } }
+
+/* ---- 页签 ---- */
+function activate(sk){
+  for(const k of ["p04","p05","p06","p07","p08","p09","p10","p11","p12"]){
+    const tab = document.getElementById("tab-"+k), sc = document.getElementById("scene-"+k);
+    const sel = k === sk;
+    tab.setAttribute("aria-selected", String(sel));
+    sc.classList.toggle("hidden", !sel);
+  }
+  if(sk === "p05") startClock(); else stopClock();
+}
+
+/* ---- 初始化 ---- */
+for(const sk of ["p04","p05","p06","p07","p08","p09","p10","p11","p12"]){
+  state[sk] = newState();
+  renderBody(sk);
+  renderChips(sk);
+  const input = document.getElementById(sk + "-input");
+  input.addEventListener("keydown", ev => { if(ev.key === "Enter"){ ev.preventDefault(); submit(sk); } });
+}
+document.getElementById("tab-p04").addEventListener("click", () => activate("p04"));
+document.getElementById("tab-p05").addEventListener("click", () => activate("p05"));
+document.getElementById("tab-p06").addEventListener("click", () => activate("p06"));
+document.getElementById("tab-p07").addEventListener("click", () => activate("p07"));
+document.getElementById("tab-p08").addEventListener("click", () => activate("p08"));
+document.getElementById("tab-p09").addEventListener("click", () => activate("p09"));
+document.getElementById("tab-p10").addEventListener("click", () => activate("p10"));
+document.getElementById("tab-p11").addEventListener("click", () => activate("p11"));
+document.getElementById("tab-p12").addEventListener("click", () => activate("p12"));
+activate("p05");
+
+/* 调试探针（控制台）：__m16State("p04") —— 仅供工具链联调，页面前台无此入口 */
+window.__m16State = (sk) => state[sk];
+</script>
+</body>
+</html>
