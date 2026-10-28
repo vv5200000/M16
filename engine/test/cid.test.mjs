@@ -168,6 +168,7 @@ test('cid_registry 暴露 cid → 映射 / 拍集，供快照与 lint 对账', (
   assert.deepEqual([...watch.beats].sort(), ['P2', 'P5']);
   const trust = registry.get('C-TRUST-01');
   assert.equal(trust.mapping, 'N');
-  assert.deepEqual([...trust.beats].sort(), ['P2', 'P5']);
+  // P7「守一段」判并 C-TRUST-01（EX-P07-002，l3:false，首计仍 P02）——BLK-1 词表接入后拍集由 2 增至 3。
+  assert.deepEqual([...trust.beats].sort(), ['P2', 'P5', 'P7']);
   assert.equal(registry.get('C-TIME-01').mapping, 'S');
 });
