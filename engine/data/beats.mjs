@@ -34,7 +34,7 @@ export const DEEP_MOUNTS = Object.freeze(['P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P
  * - 计分去重键 = cid（R3）：同一 cid 跨拍只在首次有效探索计 1 分，后续记 `dedup_hit`；
  * - `l3: false` = 该行 L3 不计分（仍返回文本），如 P06「窗口」共享 C-WIN-01；
  * - 同一词面跨 cid 仅限同映射且 ≤3（R4，如裸「账本」P06/P08）；
- * - 同义串跨 cid 复用即 X6/R5 冲突，运行期判 0 并登记（P02「陈望」现存一条）。
+ * - 同义串跨 cid 复用按 R4（同映射 ≤3）／X6（异维冲突）分流；异维清串后为零，P2/P10「陈望」＝R4=2 合规共享。
  */
 export const PERCEPTION_WORDLISTS = Object.freeze({
   P1: [
@@ -49,11 +49,11 @@ export const PERCEPTION_WORDLISTS = Object.freeze({
   ],
   P2: [
     { id: 'P2.生平', term: '生平', synonyms: ['小传', '庄伯年', '庄主'], dimension: 'S', cid: 'C-BIO-01' },
-    // X6 冲突登记（待数据修）：'陈望' 同时是 P2.陪护（S 同义）与 P2.陈望（N 关键词），同一映射面不可能。
-    // G6③：异维等长多命中 → 判 0 并记日志，引擎不自行选边；summary().cidConflicts 同步登记。
+    // X6-7 已消解（批次 5）：'陈望' 仅持 N 映射两行（P2 C-NAME-01／P10 C-NAME-03，R4=2 合规共享）；P2.陪护（S）同义列已移出。
+    // G6③：异维等长多命中 → 判 0 并记日志，引擎不自行选边；summary().cidConflicts 同步登记（清串后为零）。
     { id: 'P2.表', term: '表', synonyms: ['手表', '老何', '表壳', '夹层'], dimension: 'S', cid: 'C-WATCH-01' },
     { id: 'P2.合同', term: '合同', synonyms: ['陆况', '继承', '无继承'], dimension: 'S', cid: 'C-CONTRACT-01' },
-    { id: 'P2.陪护', term: '陪护', synonyms: ['顾言', '摘录', '陈望'], dimension: 'S', cid: 'C-CARE-01' },
+    { id: 'P2.陪护', term: '陪护', synonyms: ['顾言', '摘录'], dimension: 'S', cid: 'C-CARE-01' },
     { id: 'P2.托付', term: '托付', synonyms: ['安排', '后事', '三个人'], dimension: 'N', cid: 'C-TRUST-01' },
     { id: 'P2.陈望', term: '陈望', synonyms: ['名字', '念名'], dimension: 'N', cid: 'C-NAME-01' },
     { id: 'P2.儿子', term: '儿子', synonyms: ['省城', '独子'], dimension: 'N', cid: 'C-SON-01' },

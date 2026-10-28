@@ -56,8 +56,16 @@ test('§四.1 一次输入只计一次命中（最长匹配后禁止子串回溯
   assert.equal(t.summary().total, 1);
 });
 
-test('G6③ 异维等长多命中判 0 并记日志（P02 陈望数据侧冲突）', () => {
-  const t = track();
+test('G6③ 异维等长多命中判 0 并记日志（合成词表·能力守卫）', () => {
+  const t = createPerceptionTrack({
+    config: resolveConfig(),
+    wordlists: {
+      P2: [
+        { id: 'P2.陪护', term: '陪护', synonyms: ['陈望'], dimension: 'S', cid: 'C-CARE-01' },
+        { id: 'P2.陈望', term: '陈望', synonyms: ['名字'], dimension: 'N', cid: 'C-NAME-01' },
+      ],
+    },
+  });
   const r = t.record({ beat: 'P2', input: '陈望' });
   assert.equal(r.scored, false);
   assert.equal(r.reason, 'cross_dimension_ambiguous');
@@ -70,6 +78,20 @@ test('G6③ 异维等长多命中判 0 并记日志（P02 陈望数据侧冲突�
     [...new Set(s.logs[0].candidates.map((c) => c.dimension))].sort(),
     ['N', 'S'],
   );
+});
+
+test('X6-7 清串回归：P02「陈望」判 N（C-NAME-01），X6 清单为空', () => {
+  const t = track();
+  assert.deepEqual(t.summary().cidConflicts, []);
+  const r = t.record({ beat: 'P2', input: '陈望' });
+  assert.equal(r.scored, true);
+  assert.equal(r.dimension, 'N');
+  assert.equal(r.rowId, 'P2.陈望');
+  assert.equal(r.cid, 'C-NAME-01');
+  const s = t.record({ beat: 'P2', input: '摘录' });
+  assert.equal(s.scored, true);
+  assert.equal(s.dimension, 'S');
+  assert.equal(s.cid, 'C-CARE-01');
 });
 
 test('无命中 / 空输入 / 无词库 均不落分', () => {

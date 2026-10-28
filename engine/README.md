@@ -72,7 +72,7 @@ s.exportSettlementRecord();                 // 生产留档（口径 B 严格字
 
 ## 数据侧缺陷登记（引擎已按 G6③ 判 0，需数据修订）
 
-- **P02 `陈望`**：同时是 `P2.陪护`（S）的同义词与 `P2.陈望`（N）的关键词 → 违反 R1/R5（同词面异映射），构建期登记为 `X6_cross_mapping_conflict`（`summary().cidConflicts`），运行期判 0 并记 `cross_dimension_ambiguous`。`test/cid.test.mjs` 固定该行为；数据侧修法 = 从 `P2.陪护` 同义列移出「陈望」。
+- **P02 `陈望`（X6-7）— 已消解（批次 5）**：原 `P2.陪护`（S）同义列已移出「陈望」，现「陈望」仅持 N 映射两行（`P2.陈望` C-NAME-01／`P10.陈望` C-NAME-03，R4=2 合规共享），`summary().cidConflicts` 为空。G6③ 判 0 能力保留（`test/perception.test.mjs` 合成词表用例守护）。
 - **P2 顺序信号无 S/N 映射**：见上表 `P2.ORDER.SN_MAPPING`。
 - **P06/P07/P08 词库未入引擎数据**：账本系 `C-ACC-01…03` + `C-ACC-04`（刀疤那本账；按数据 seq=193 C6「一本」裁定，私账=账本=藏鞋垫那本同 C-ID 同义；`C-ACC-05` 已撤销、编号不复用；`C-ACC-06` 庄主账本待定）、`C-WIN-01`（窗口 `l3:false`）、`C-KEY-01`（P07）、`C-NUM-01` 已由数据台账预分配；引擎侧已支持同词异指与 `l3:false`，待产品 r2 词库落版后按 `cid` 字段接入即可（测试用合成行证明行为，编号按台账）。
 

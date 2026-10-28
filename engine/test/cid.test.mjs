@@ -121,7 +121,7 @@ test('X6 冲突（同词面异映射）在构建期登记，运行期判 0 并�
   assert.equal(t.summary().logs[0].dedupReason, 'cross_dim');
 });
 
-test('X6 已消解验证：P01 规矩表不再持有「规矩」，P02 保持 N', () => {
+test('X6 已消解验证：P01 规矩表不再持有「规矩」，P02 保持 N，X6 清单为空', () => {
   const t = track(PERCEPTION_WORDLISTS);
   assert.equal(t.record({ beat: 'P1', input: '规矩' }).reason, 'no_match');
   const p1 = t.record({ beat: 'P1', input: '猎庄规矩' });
@@ -132,7 +132,7 @@ test('X6 已消解验证：P01 规矩表不再持有「规矩」，P02 保持 N'
   assert.equal(p2.cid, 'C-RULE-02');
 
   const cidConflicts = t.summary().cidConflicts.map((conflict) => conflict.surface);
-  assert.deepEqual(cidConflicts, ['陈望'], '规矩不应再出现在 X6 清单中');
+  assert.deepEqual(cidConflicts, [], 'X6 异维冲突应为空：规矩与陈望均已消解');
 });
 
 test('结构性违规拒绝构建：缺 C-ID / 同 cid 异映射 / 同词面 >3 个 cid（R2/R4）', () => {
