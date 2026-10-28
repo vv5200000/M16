@@ -1,0 +1,13 @@
+{
+  "name": "m16-engine",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "M16 narrative scoring engine — conviction (A/B/C) + dual-track MBTI sampling, per frozen batch-1 contract",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}
