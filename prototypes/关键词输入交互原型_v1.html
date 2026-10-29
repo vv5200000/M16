@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>M16 · 关键词输入交互原型（P04–P12 · 批次 2/3/5 · 终验增量）</title>
+<title>M16 · 关键词输入交互原型（P01–P12 · 批次 1/2/3/5 · 终验增量）</title>
 <style>
   :root{
     --paper:#191612; --card:#211d17; --ink:#d8cfbc; --ink-dim:#8f8674;
@@ -51,6 +51,11 @@
     font-size:13px;color:var(--ink-dim);font-style:normal;font-weight:400;
     border-left:1px solid var(--line);
   }
+  .inv-list{margin:0 0 12px 1.5em;font-size:15px}
+  .inv-list li{margin-bottom:4px}
+  .dossier{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}
+  .dossier th,.dossier td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+  .dossier th{color:var(--accent);font-weight:600;letter-spacing:.05em}
   .scene-clock{
     display:flex;align-items:center;gap:14px;margin:0 0 18px;padding:10px 14px;
     border:1px solid var(--line);font-size:13px;color:var(--clock);letter-spacing:.05em;
@@ -106,14 +111,17 @@
 <body>
 <div class="wrap">
 <header>
-  <h1>关键词输入交互原型 · P04–P12</h1>
+  <h1>关键词输入交互原型 · P01–P12</h1>
   <div class="meta">
-    M16 批次 2/3 · <strong>v3.4</strong>（v2=forced 态改判 + 终表 §四 #1–6 + N4/N5，探针双绿 seq=229；v3=终表 §四 #7 P06 场景分叉词面；v3.1=seq=241 裁定 2 symmetric 否定作废；v3.2=测试 seq=251 P3 重问提示叠加修复（终登 6584f49b…，seq=596 核可）；v3.3=seq=614 落位增量：P11 场景 13 行入原型＋比较面去标点归一（终登 3867a8ed…，seq=644/722 记档、第二绿 72/72）；<strong>v3.4=seq=722 裁定 R-7 P12 半项点名增量：P12 空场景运行时载体（零池行/chips 容器空/未匹配框架句＋建议词位置空/canon 三行提示语＋尾句逐字 verbatim，源＝落位件 b20cafee…）</strong>；<strong>v3.5=seq=1092 动工令批次 5 增量：P07–P10 四屏入原型（正文/block verbatim＝切片 2ce740e0…；46 行词面 verbatim 对 beats.mjs HEAD 3b9efae 形；chipsOrder＝P-4 §三首见序；A/B 面词面 P07/P10＝终表 §5.1/§5.4 定版全列、P08/P09＝切片全列；triggerAfter=7/7/6/6 候选 A 终值；选项展示行计分标注剥离＋第⑤条机防；branch/done 裁剪形延伸＝branchA/B←选项行剥离形、done←既载归档句；提示语←活动行；建议词≡chips）</strong>；依据 <strong>M16_批次1_Schema冻结契约_v1</strong> §四 + 分叉词表终表 + P04/P05/P06/P11/P12 落位成品）<br>
+    M16 批次 1/2/3/5 · <strong>v3.4</strong>（v2=forced 态改判 + 终表 §四 #1–6 + N4/N5，探针双绿 seq=229；v3=终表 §四 #7 P06 场景分叉词面；v3.1=seq=241 裁定 2 symmetric 否定作废；v3.2=测试 seq=251 P3 重问提示叠加修复（终登 6584f49b…，seq=596 核可）；v3.3=seq=614 落位增量：P11 场景 13 行入原型＋比较面去标点归一（终登 3867a8ed…，seq=644/722 记档、第二绿 72/72）；<strong>v3.4=seq=722 裁定 R-7 P12 半项点名增量：P12 空场景运行时载体（零池行/chips 容器空/未匹配框架句＋建议词位置空/canon 三行提示语＋尾句逐字 verbatim，源＝落位件 b20cafee…）</strong>；<strong>v3.5=seq=1092 动工令批次 5 增量：P07–P10 四屏入原型（正文/block verbatim＝切片 2ce740e0…；46 行词面 verbatim 对 beats.mjs HEAD 3b9efae 形；chipsOrder＝P-4 §三首见序；A/B 面词面 P07/P10＝终表 §5.1/§5.4 定版全列、P08/P09＝切片全列；triggerAfter=7/7/6/6 候选 A 终值；选项展示行计分标注剥离＋第⑤条机防；branch/done 裁剪形延伸＝branchA/B←选项行剥离形、done←既载归档句；提示语←活动行；建议词≡chips）</strong>；<strong>v3.6=seq=1200 动工令批次 5 后续波增量：P01–P03 三屏运行时界面入原型（三态形＝空场景／探索命中／未匹配兜底；decision=null——件③§七.1 实测 P1／P3 decision=null、P2='order' 系顺序信号非分叉，triggerAfter 无适用面；正文 14／14／6 块＋block 22 行 verbatim＝件①98dab365…；词面／同义／维 22 行 verbatim＝件③8156b1bd…（64ffbde engine 实形，本地 3b9efae 旧副本作废零用）；chipsOrder＝件②8788ef0a… §三首见序；「表」→label 降档「手表」（seq=1181 裁 4，承钥匙→偷偷配先例）；P02 订单面裁 a 不入界面——界面按探索拍三态形呈、订单面位留空如实注（sn: null、pending P2.ORDER.SN_MAPPING，件①§三.3／件③§七.3）；屏名两位形 P01–P03、C-ID 拍内唯一、零真实流量、§四.1 第⑤条机防族＋全域结算禁列沿用）</strong>；依据 <strong>M16_批次1_Schema冻结契约_v1</strong> §四 + 分叉词表终表 + P01–P12 落位成品）<br>
     <span class="warn">原型仅供评审验证交互口径——正文展示、计分与落位成品不一致；生产实现中决策采集与计分在服务端，前端不呈现任何维度/分值。</span>
   </div>
 </header>
 
 <div class="tabs" role="tablist" aria-label="选择节拍">
+  <button class="tab" role="tab" id="tab-p01" aria-controls="scene-p01" aria-selected="false">P01 · 档案箱</button>
+  <button class="tab" role="tab" id="tab-p02" aria-controls="scene-p02" aria-selected="false">P02 · 死者</button>
+  <button class="tab" role="tab" id="tab-p03" aria-controls="scene-p03" aria-selected="false">P03 · 邀请函</button>
   <button class="tab" role="tab" id="tab-p04" aria-controls="scene-p04" aria-selected="false">P04 · 凶器链</button>
   <button class="tab" role="tab" id="tab-p05" aria-controls="scene-p05" aria-selected="true">P05 · 时间窗</button>
   <button class="tab" role="tab" id="tab-p06" aria-controls="scene-p06" aria-selected="false">P06 · 第一份材料</button>
@@ -124,6 +132,39 @@
   <button class="tab" role="tab" id="tab-p11" aria-controls="scene-p11" aria-selected="false">P11 · 暗线浮现</button>
   <button class="tab" role="tab" id="tab-p12" aria-controls="scene-p12" aria-selected="false">P12 · 归档（空场景）</button>
 </div>
+
+<!-- ================= P01 · v3.6 批次 5 后续波增量（三态形 · 源＝件①98dab365…／件③8156b1bd…／件②8788ef0a…） ================= -->
+<section class="scene hidden" id="scene-p01" role="tabpanel" aria-labelledby="tab-p01">
+  <h2>第一节 · 档案箱</h2>
+  <div id="p01-body"></div>
+  <div class="hintrow" id="p01-hint">材料不齐——这就是你要归档的原因。写下你在意的词。</div>
+  <input type="text" id="p01-input" placeholder="写下你注意到的……" aria-label="关键词输入（P01）" autocomplete="off">
+  <div class="chips" id="p01-chips" role="group" aria-label="建议词"></div>
+  <div class="log" id="p01-log" aria-live="polite"></div>
+  <div id="p01-decision"></div>
+</section>
+
+<!-- ================= P02 · v3.6 批次 5 后续波增量（三态形 · 源＝件①98dab365…／件③8156b1bd…／件②8788ef0a…） ================= -->
+<section class="scene hidden" id="scene-p02" role="tabpanel" aria-labelledby="tab-p02">
+  <h2>第二节 · 死者</h2>
+  <div id="p02-body"></div>
+  <div class="hintrow" id="p02-hint">先看哪一件，随你。写下你在意的词。</div>
+  <input type="text" id="p02-input" placeholder="写下你注意到的……" aria-label="关键词输入（P02）" autocomplete="off">
+  <div class="chips" id="p02-chips" role="group" aria-label="建议词"></div>
+  <div class="log" id="p02-log" aria-live="polite"></div>
+  <div id="p02-decision"></div>
+</section>
+
+<!-- ================= P03 · v3.6 批次 5 后续波增量（三态形 · 源＝件①98dab365…／件③8156b1bd…／件②8788ef0a…） ================= -->
+<section class="scene hidden" id="scene-p03" role="tabpanel" aria-labelledby="tab-p03">
+  <h2>第三节 · 邀请函</h2>
+  <div id="p03-body"></div>
+  <div class="hintrow" id="p03-hint">材料里有一沓复印件——寄出记录。写下你在意的词。</div>
+  <input type="text" id="p03-input" placeholder="写下你注意到的……" aria-label="关键词输入（P03）" autocomplete="off">
+  <div class="chips" id="p03-chips" role="group" aria-label="建议词"></div>
+  <div class="log" id="p03-log" aria-live="polite"></div>
+  <div id="p03-decision"></div>
+</section>
 
 <!-- ================= P04 ================= -->
 <section class="scene hidden" id="scene-p04" role="tabpanel" aria-labelledby="tab-p04">
@@ -240,6 +281,7 @@
   v3.3（seq=614 落位增量，6584f49b 终登后的单独增量·单独探针·单独登记）：① P11 场景——词库 13 行=S7/N6 正常采 S/N（13 行均 L2；词库数组序＝落位件表行序（verbatim 可对比），chips 展示序按 scene.chipsOrder＝正文过手序 S-1：壁画/轮廓/画给你看/车被开走/没对任何人讲/相册里的车/那出戏不吉利/旧戏箱/彩排录像/改了戏词/天亮之前，别回头/那张票/同一个人——与头注③/未匹配引导行/快照 chips 表四处同序）；分叉=双主动选题型 symmetric=true（A 追那人→E+1、B 回枪案→I+1 直对应——P11＝E/I 全路径唯一最低采样位、两选项均计分、定罪不计、其他选择不计 S/N；A/B 面 24 串 r2 草稿 §三分叉解析行 verbatim 入表——终表 §五 入册系服务端引用形）；追那人/回枪案 X2 L1/L2/L3 全出＝不进词库/chips/建议词，决策解析器面正常开放；P11 无计时器、无 forced 态（r2 分叉解析行 forced 描述系五则模板语——无计时即无超窗触发，与 P06 同形；若项目另裁 P11 需叙事 forced 入口，请下令）；尾句「往外还是收回，起步走哪条道，看你的。」未注册走未匹配兜底。② 比较面去标点归一（裁定六①无逗号子项提前收口）：normalize() 原归一面不动，新增 denorm()=归一面再剔除标点集；matchEntry 双轨——词面在原归一面或去标点面任一面命中即命中，最长匹配/一次一计/异维判 0 在两轨同构复用（长度以原归一面词面长计），效果=全角/半角/无逗号输入均命中「天亮之前，别回头」同一行；展示域零触碰（chips/建议词/返回块/正文保 canon 逗号逐字形）；parseDecision 不动（两轨隔离——分叉轨不读词库命中、24 面串无标点）。FAIL 不变式=歌词行三路命中外其余命中集合零变化。
   页边旁记＝UI 裁定方案 1：标准 blockquote、字号降一档、次级文本 token、左细竖线、无背景/图标/斜体/加粗、不折叠、无额外 ARIA。
   v3.4（seq=722 裁定·R-7 P12 半项点名增量，单独增量·单独探针·单独登记）：P12 空场景运行时载体入原型——零池行（lexicon=[]，检索命中轨在 P12 不产生得分）、chips 全域停用＝容器空（chipsFor 返回空集）、未匹配走 README 统一框架句「没有找到关于"xxx"的直接线索。」＋建议词位置空（空 chips 容器）；正文呈示位仅 canon 三行提示语＋尾句逐字（verbatim 源＝落位件 b20cafeedb0819bec7f00c1ef2df9ba4 / r2 草稿 e60adf35… 正文域逐行一致的已核形；弯引号＝展示层字形，O-4 口径，verbatim 断言行内串不含外框＝UI seq=663 O-2 采纳形）；零场景叙事（不新增任何自撰叙述/提示行）、无决策卡无分叉面（R-8 按段独立首采系服务端口径，不在本增量——玩家直输＝分类器填充输入，前端不判段不计分）、无计时器无 forced；probe=false＝零 S/N 采样触点，词库零行＝零 C-ID 触点。P01–P11 全量回归零差为验收前提（终验探针 45 断言案形复跑；其中 R7.7 由「P12 未入原型」订正为「P12 空场景形」系探针侧变更非改码）。落位件与 README 一字未动（本增量仅原型件）。
+  v3.6（seq=1200 动工令·批次 5 后续波 P01–P03 增量，单独增量·单独探针·单独登记）：三屏以三态形入原型——空场景（初始呈正文＋本拍 L2 chips）／探索命中（22 行词库 kw/syn/维 verbatim 镜像 64ffbde 引擎实形，件③为强锚；最长匹配/一次一计/同维歧义与异维判 0 复用既有引擎轨；P3「邮戳」同拍双属行＝歧义判 0 与引擎同构）／未匹配兜底（统一框架句＋建议词≡chips）。P01–P03 decision=null：件③§七实测 BEATS.decision P1／P3=null、P2='order' 系顺序信号非自由落笔分叉，DECISION_FORKS 零 P1–P3 条目、triggerAfter 无适用面（件①c 域一律「无适用面」如实注）。P02 订单面裁 a 不入界面——ORDER_SIGNAL 三选项 sn: null、pending P2.ORDER.SN_MAPPING，界面按探索拍三态形呈、订单面位留空如实注，不出选项行、不补撰选后语义；「表」→label 降档「手表」（seq=1181 裁 4）仅展示层，词面行 verbatim 不动；裸「表」零 chip（H-2）。块型映射承件①§八.4 建议形：清单→&lt;ul&gt;、表格→&lt;table&gt;、引语→quote、旁记→marginalia、**…**→&lt;b&gt;，字符不动；hintrow＝落位件逐字句＋既有固定邀句「写下你在意的词。」拼接，零自撰叙述；probe=true 镜像本拍 S/N 采样触点（件③§一 维分布 22 行全 S/N；P3 BEATS sn=null 系轨标记、C-ID 采样触点仍在，本条为披露性裁形）；存量九屏（P04–P12）零扰动——深比对＋逐行存在性双闸（§四.1 全绿重跑）。
 </footer>
 </div>
 
@@ -254,6 +296,126 @@
    L2=是否进 chips；label=chips 展示标签（§四.5 降档）；chipsOrder=展示序（缺省＝数组序）；
    P04 整拍 probe=false（不进 S/N 轨，O1 口径②，仅作匹配演示） ---- */
 const SCENES = {
+  /* v3.6 批次 5 后续波 · P01 档案箱——三态形（空场景／探索命中／未匹配兜底），seq=1181 裁 1／seq=1200 动工令。
+     正文/块型/block＝件①98dab365…（64ffbde 落位件）；词面/同义/维＝件③8156b1bd… 引擎 verbatim 强锚（本地 3b9efae 旧副本作废零用）；
+     chipsOrder＝件②8788ef0a… §三首见序；C-ID 拍内唯一；probe 镜像本拍 S/N 采样触点（件③§一 维分布 S·N 全计）＝true；
+     零分叉面：DECISION_FORKS 零 P1 条目、triggerAfter 无适用面 → decision:null。 */
+  p01: {
+    probe: true,
+    chipsOrder: ["樟木箱","空缺","死亡报告","规矩表","录音带","照片","时间","第五行"],
+    lexicon: [
+      {kw:"死亡报告", syn:["报告","死因","枪"], map:"S", L2:true,
+       block:"报告摘要其余内容 + 备注：\"枪声响起时，多数受邀者尚未到场\"（细节展开）"},   /* C-DEATH-01 */
+      {kw:"规矩表", syn:["猎庄规矩","规则"], map:"S", L2:true,
+       block:"规矩表前四条 + 说明：\"这是猎庄四十年不变的底线，庄主本人就是规矩的执行者\""},   /* C-RULE-01 */
+      {kw:"第五行", syn:["新增行","新规矩","墨色"], map:"N", L2:true,
+       block:"\"受邀者抵达后，不得擅自离开猎庄范围\"——墨色偏新，数月内新添；旧规矩从未有过这一条"},   /* C-LINE-01 */
+      {kw:"樟木箱", syn:["箱子","档案箱","锁扣"], map:"N", L2:true,
+       block:"箱角磕痕、锁扣是新的——与箱身旧色不合"},   /* C-BOX-01 */
+      {kw:"录音带", syn:["磁带","空带"], map:"N", L2:true,
+       block:"空白录音带，标签写日期，没录上声音；\"本该录下的东西，没录下来\""},   /* C-TAPE-01 */
+      {kw:"照片", syn:["手"], map:"S", L2:true,
+       block:"最后一张只照到一只手；虎口有茧、指节粗大——拿惯枪的手，看不出是谁"},   /* C-PHOTO-01 */
+      {kw:"空缺", syn:["弹道","待补","不齐"], map:"N", L2:true,
+       block:"\"弹道比对待补、录音带空白、复印件而非原件，材料不齐\"——归档工作的起点"},   /* C-GAP-01 */
+      {kw:"时间", syn:["八月","夜晚"], map:"S", L2:true,
+       block:"死亡时间：2024 年 8 月末夜，临时召集当晚（细节展开朝向 P5 何钟时间窗）"},   /* C-TIME-01 */
+    ],
+    body: [
+      {t:"p", x:"档案箱是樟木的，角上磕了一处，锁扣是新的——换过。"},
+      {t:"p", x:"2024 年 8 月底，猎庄老庄主死于自己召集的聚会。材料不齐，你要把它归档。"},
+      {t:"p", x:"箱里的东西不多："},
+      {t:"list", x:["死亡报告一份，三联纸，第二联的复写淡得快看不见了","规矩表一页，卷在三夹板里，纸边发黄，四十年了","邀请函复印件一沓，原件不在材料里","空白录音带一盘，标签上只写了日期，什么都没录上","照片几张，大多拍糊了，最后一张只照到一只手"]},
+      {t:"p", x:"你把报告抽出来。纸很轻，盖章的红戳颜色还很新——"},
+      {t:"p", x:"<b>死亡报告（摘要）</b>"},
+      {t:"table", x:{"h":["栏位","内容"],"r":[["死者","庄伯年，猎庄第三代掌事"],["出生 / 死亡","1960 — 2024 年 8 月末夜"],["地点","山屋主厅"],["死因","枪击。唯一死因，无其他损伤"],["凶器（推定）","猎枪一支，膛线八月间检修过；弹道比对结果待补"],["备注","枪响时，受邀者尚未到齐"]]}},
+      {t:"marginalia", x:"（弹道比对那一栏是空的。材料不齐——这就是你要归档的原因。）"},
+      {t:"p", x:"规矩表摊开在桌上。纸比报告重，也比报告旧。三代人传下来的东西，到他这一代已经是第四版："},
+      {t:"p", x:"<b>猎庄规矩（第四版）</b>"},
+      {t:"table", x:{"h":["条","内容"],"r":[["一","猎什么：只猎山上的，不猎山下的。"],["二","不猎什么：不猎怀崽的兽，不猎雪天的脚印。"],["三","几点开灯：日落掌灯，鸡鸣熄灯。灯亮着，人才是在山下过夜的心安处。"],["四","谁可以进山：庄里的人可以；庄外的人，要庄主点头。"],["五","<b>受邀者抵达后，不得擅自离开猎庄范围。</b>"]]}},
+      {t:"p", x:"前四条字迹一致，是老庄主中年时一笔一画写的。第五条字迹相同，但墨色偏新——像是不久前才添的。规矩表没有\"删\"字，只有\"添\"。添的是一条从前的猎庄从来没有过的规矩。"},
+      {t:"p", x:"照片里的那只手，指节粗大，虎口有茧，手腕上露出一截旧袖口。拍糊了，看不出是谁。"},
+      {t:"p", x:"录音带是空白的。标签日期是 2024 年 8 月，其余无字。"},
+    ],
+    decision: null,   /* 三态形：落位件决策点注＝无、BEATS.decision=null（件①§二.2／件③§七.1） */
+  },
+  /* v3.6 批次 5 后续波 · P02 死者——三态形（空场景／探索命中／未匹配兜底），seq=1181 裁 1／seq=1200 动工令。
+     正文/块型/block＝件①98dab365…（64ffbde 落位件）；词面/同义/维＝件③8156b1bd… 引擎 verbatim 强锚（本地 3b9efae 旧副本作废零用）；
+     chipsOrder＝件②8788ef0a… §三首见序；C-ID 拍内唯一；probe 镜像本拍 S/N 采样触点（件③§一 维分布 S·N 全计）＝true；
+     零分叉面：DECISION_FORKS 零 P2 条目、triggerAfter 无适用面 → decision:null。 */
+  p02: {
+    probe: true,
+    chipsOrder: ["生平","规矩","儿子","托付","表","合同","陪护","陈望"],
+    lexicon: [
+      {kw:"生平", syn:["小传","庄伯年","庄主"], map:"S", L2:true,
+       block:"手写生平全文 + \"这是他生前自己写的，没有停顿，像在交代后事\""},   /* C-BIO-01 */
+      {kw:"表", syn:["手表","老何","表壳","夹层"], map:"S", L2:true, label:"手表",
+       block:"表细节：旧钢表、表壳可旋、夹层待核——内容不在本箱材料内"},   /* C-WATCH-01 */
+      {kw:"合同", syn:["陆况","继承","无继承"], map:"S", L2:true,
+       block:"合同草稿细节：无继承条款、落款空白、权属内容被涂改"},   /* C-CONTRACT-01 */
+      {kw:"陪护", syn:["顾言","摘录"], map:"S", L2:true,
+       block:"陪护摘录细节：反复念的名字仅可辨\"陈望\"、末页半句未写完"},   /* C-CARE-01 */
+      {kw:"托付", syn:["安排","后事","三个人"], map:"N", L2:true,
+       block:"\"把后事一件件安排给不同的人，每个人守一个位置，谁也不知道全局\"（托付之网全貌）"},   /* C-TRUST-01 */
+      {kw:"陈望", syn:["名字","念名"], map:"N", L2:true,
+       block:"摘录里仅可辨的两个字——是谁，材料未作解释"},   /* C-NAME-01 */
+      {kw:"儿子", syn:["省城","独子"], map:"N", L2:true,
+       block:"\"儿子去了省城，再没回来\""},   /* C-SON-01 */
+      {kw:"规矩", syn:["说一不二","四十年"], map:"N", L2:true,
+       block:"生平里\"他就是规矩本身\"——但三件托付说明，他死前在做一件\"不合规矩\"的布置"},   /* C-RULE-02 */
+    ],
+    body: [
+      {t:"p", x:"死者不是一开始就是死者。归档的第一步，是认识死者。"},
+      {t:"p", x:"材料里有一份手写的生平，笔迹和规矩表同源——是老庄主自己写的，生前写的，墨色均匀，几乎没有停顿。"},
+      {t:"p", x:"<b>庄伯年（1960—2024）</b>"},
+      {t:"p", x:"猎庄土生土长。第三代掌事。十六岁能单手提枪，十八岁独自进山七天七夜——那是庄里老人至今还讲的事。"},
+      {t:"p", x:"他订的规矩，全村守了四十年：猎什么、不猎什么、几点开灯、谁可以进山。说一不二，坐姿端正如钟。他就是规矩本身——村里没人恨他，但也没人敢爱他。做了四十年\"说了算的人\"，也因此四十年没朋友。"},
+      {t:"p", x:"妻子早逝。儿子去了省城，再没回来。他一个人守着猎庄，把规矩当儿子养。庄里的老人说：庄主不缺人伺候，缺人说话。"},
+      {t:"p", x:"三年前他病重，做了一些安排。材料里三件东西，对应他托付的三个人——<b>他把后事一件件安排给不同的人，每个人守一个位置，谁也不知道全局。</b>"},
+      {t:"p", x:"<b>① 一只表</b>（托付给：修表的老何）"},
+      {t:"p", x:"表是旧钢表，表带换过两次，表盘有磕痕。表壳可以旋开——里面似有夹层，档案照片只拍到旋开前的状态。夹层里有没有字条、写了什么，材料里没有抄录页，待核。"},
+      {t:"p", x:"<b>② 一份合同</b>（委托给：城里的律师陆况）"},
+      {t:"p", x:"合同草稿，落款处空着，没有签字。条款里有一条关于\"死后安排\"的段落，措辞是\"无继承\"——具体的权属内容被涂改过，看不清。这份文件没有完成，像是起草到一半，双方各存了心思。"},
+      {t:"p", x:"<b>③ 一份陪护摘录</b>（来自：从省城来的顾言）"},
+      {t:"p", x:"病重期间，由顾言负责陪护。归档的是几页事后整理的摘录，不是陪护原件：庄主病中反复念一个名字——字迹模糊处仅可辨「陈望」二字。末页有半句未写完的话，收尾处空着，像被打断。"},
+      {t:"p", x:"三件托付，三条线：<b>表</b>通向那晚的时间，<b>合同</b>通向利益的底，<b>陪护</b>通向临死前没说出口的话。先看哪一件，随你。"},
+    ],
+    /* 订单面位留空如实注（seq=1181 裁 2＝裁 a／件①§三.3／件③§七.3）：BEATS.decision='order' 系顺序信号，
+       ORDER_SIGNAL 三选项 sn: null、pending P2.ORDER.SN_MAPPING——未定维，任何选后语义即自撰。
+       界面按探索拍三态形呈：不出选项行、不补撰选后语义，分叉卡与 triggerAfter 无适用面。 */
+    decision: null,
+  },
+  /* v3.6 批次 5 后续波 · P03 邀请函——三态形（空场景／探索命中／未匹配兜底），seq=1181 裁 1／seq=1200 动工令。
+     正文/块型/block＝件①98dab365…（64ffbde 落位件）；词面/同义/维＝件③8156b1bd… 引擎 verbatim 强锚（本地 3b9efae 旧副本作废零用）；
+     chipsOrder＝件②8788ef0a… §三首见序；C-ID 拍内唯一；probe 镜像本拍 S/N 采样触点（件③§一 维分布 S·N 全计）＝true；
+     零分叉面：DECISION_FORKS 零 P3 条目、triggerAfter 无适用面 → decision:null。 */
+  p03: {
+    probe: true,
+    chipsOrder: ["寄出记录","邮戳","收件人","秋后聚齐","带上账","七月新规"],
+    lexicon: [
+      {kw:"寄出记录", syn:["邀请","复印件","邮戳"], map:"S", L2:true,
+       block:"寄出记录细节：七月寄出、字迹是庄伯年亲笔、收件人各不相同"},   /* C-MAIL-01 */
+      {kw:"秋后聚齐", syn:["邀请函","内容"], map:"S", L2:true,
+       block:"邀请全文：\"秋后到山屋聚齐，宣布大事\" + 每人一句单独补充"},   /* C-SUMMON-01 */
+      {kw:"带上账", syn:["补充","小字"], map:"N", L2:true,
+       block:"\"寄给每个人，都有一句只对他自己说的补充——有人被要求带账，有人被要求带来签过的文件\""},   /* C-ASK-01 */
+      {kw:"七月新规", syn:["新规","第五条","不得离开"], map:"N", L2:true,
+       block:"七月同月添的规矩第五条：\"受邀者抵达后，不得擅自离开猎庄范围\"——聚会是\"请进来\"，规矩是\"不许走\""},   /* C-NEWRULE-01 */
+      {kw:"邮戳", syn:["时间","七月"], map:"S", L2:true,
+       block:"邮戳日期集中在七月——邀请发出到出事，隔了不到两个月"},   /* C-POST-01 */
+      {kw:"收件人", syn:["谁","名单"], map:"N", L2:true,
+       block:"复印件不齐，收件人名单无法完整拼出（防 16 边界：此处与全局合计数量永远不可数）"},   /* C-LIST-01 */
+    ],
+    body: [
+      {t:"p", x:"材料里有一沓复印件——寄出记录。原件不在箱里，复印件上还能看到一枚一枚盖上去的邮戳，日期集中在 2024 年 7 月。"},
+      {t:"p", x:"每一张，收件人不同，地址不同，但内容几乎一样。手写的，笔迹是庄伯年的，一个字都没多："},
+      {t:"quote", x:"秋后到山屋聚齐，宣布大事。"},
+      {t:"p", x:"末了加一行小字，有的写\"带上账\"，有的写\"带上你 2014 年签的那份\"，有的写\"来听个交代，也把你的交代带来\"——<b>寄给每个人，都有一句只对他自己说的补充。</b>"},
+      {t:"p", x:"你数了数复印件——张数不齐，装订是一叠，但有一部分只有影子没有纸。材料不齐，替你想数清的人先放弃了。"},
+      {t:"p", x:"七月新规：同一时期，规矩表添了第五条——\"受邀者抵达后，不得擅自离开猎庄范围。\"（见 P1 档案箱）"},
+    ],
+    decision: null,   /* 三态形：落位件决策点注＝无、BEATS.decision=null（件①§四.2／件③§七.1） */
+  },
   p04: {
     probe: false,
     lexicon: [
@@ -874,6 +1036,8 @@ function renderBody(sk){
   host.innerHTML = SCENES[sk].body.map(b => {
     if(b.t === "quote") return '<blockquote class="quote">' + b.x + '</blockquote>';
     if(b.t === "marginalia") return '<blockquote class="marginalia">' + b.x + '</blockquote>';
+    if(b.t === "list") return '<ul class="inv-list">' + b.x.map(i => '<li>' + i + '</li>').join("") + '</ul>';
+    if(b.t === "table") return '<table class="dossier"><thead><tr>' + b.x.h.map(h => '<th scope="col">' + h + '</th>').join("") + '</tr></thead><tbody>' + b.x.r.map(r => '<tr>' + r.map(c => '<td>' + c + '</td>').join("") + '</tr>').join("") + '</tbody></table>';
     return '<p>' + b.x + '</p>';
   }).join("");
 }
@@ -1037,7 +1201,7 @@ function stopClock(){ if(clockTimer){ clearInterval(clockTimer); clockTimer = nu
 
 /* ---- 页签 ---- */
 function activate(sk){
-  for(const k of ["p04","p05","p06","p07","p08","p09","p10","p11","p12"]){
+  for(const k of ["p01","p02","p03","p04","p05","p06","p07","p08","p09","p10","p11","p12"]){
     const tab = document.getElementById("tab-"+k), sc = document.getElementById("scene-"+k);
     const sel = k === sk;
     tab.setAttribute("aria-selected", String(sel));
@@ -1047,13 +1211,16 @@ function activate(sk){
 }
 
 /* ---- 初始化 ---- */
-for(const sk of ["p04","p05","p06","p07","p08","p09","p10","p11","p12"]){
+for(const sk of ["p01","p02","p03","p04","p05","p06","p07","p08","p09","p10","p11","p12"]){
   state[sk] = newState();
   renderBody(sk);
   renderChips(sk);
   const input = document.getElementById(sk + "-input");
   input.addEventListener("keydown", ev => { if(ev.key === "Enter"){ ev.preventDefault(); submit(sk); } });
 }
+document.getElementById("tab-p01").addEventListener("click", () => activate("p01"));
+document.getElementById("tab-p02").addEventListener("click", () => activate("p02"));
+document.getElementById("tab-p03").addEventListener("click", () => activate("p03"));
 document.getElementById("tab-p04").addEventListener("click", () => activate("p04"));
 document.getElementById("tab-p05").addEventListener("click", () => activate("p05"));
 document.getElementById("tab-p06").addEventListener("click", () => activate("p06"));
