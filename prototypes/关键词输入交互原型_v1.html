@@ -31,6 +31,10 @@
     color:var(--ink-dim);font:inherit;font-size:14px;letter-spacing:.1em;cursor:pointer;
     transition:color .2s,border-color .2s;
   }
+  @media (max-width:640px){   /* O-1 形乙（窄屏条件化）：页签栏容器局部横滚，溢出收纳于容器；桌面 1280 零触发由既账形保持 */
+    .tabs{overflow-x:auto;flex-wrap:nowrap}
+    .tab{flex:0 0 auto}
+  }
   .tab[aria-selected="true"]{color:var(--accent);border-color:var(--accent);background:rgba(201,162,39,.06)}
   .tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .scene{
@@ -112,29 +116,25 @@
 <div class="wrap">
 <header>
   <h1>关键词输入交互原型 · P01–P12</h1>
-  <div class="meta">
-    M16 批次 1/2/3/5 · <strong>v3.4</strong>（v2=forced 态改判 + 终表 §四 #1–6 + N4/N5，探针双绿 seq=229；v3=终表 §四 #7 P06 场景分叉词面；v3.1=seq=241 裁定 2 symmetric 否定作废；v3.2=测试 seq=251 P3 重问提示叠加修复（终登 6584f49b…，seq=596 核可）；v3.3=seq=614 落位增量：P11 场景 13 行入原型＋比较面去标点归一（终登 3867a8ed…，seq=644/722 记档、第二绿 72/72）；<strong>v3.4=seq=722 裁定 R-7 P12 半项点名增量：P12 空场景运行时载体（零池行/chips 容器空/未匹配框架句＋建议词位置空/canon 三行提示语＋尾句逐字 verbatim，源＝落位件 b20cafee…）</strong>；<strong>v3.5=seq=1092 动工令批次 5 增量：P07–P10 四屏入原型（正文/block verbatim＝切片 2ce740e0…；46 行词面 verbatim 对 beats.mjs HEAD 3b9efae 形；chipsOrder＝P-4 §三首见序；A/B 面词面 P07/P10＝终表 §5.1/§5.4 定版全列、P08/P09＝切片全列；triggerAfter=7/7/6/6 候选 A 终值；选项展示行计分标注剥离＋第⑤条机防；branch/done 裁剪形延伸＝branchA/B←选项行剥离形、done←既载归档句；提示语←活动行；建议词≡chips）</strong>；<strong>v3.6=seq=1200 动工令批次 5 后续波增量：P01–P03 三屏运行时界面入原型（三态形＝空场景／探索命中／未匹配兜底；decision=null——件③§七.1 实测 P1／P3 decision=null、P2='order' 系顺序信号非分叉，triggerAfter 无适用面；正文 14／14／6 块＋block 22 行 verbatim＝件①98dab365…；词面／同义／维 22 行 verbatim＝件③8156b1bd…（64ffbde engine 实形，本地 3b9efae 旧副本作废零用）；chipsOrder＝件②8788ef0a… §三首见序；「表」→label 降档「手表」（seq=1181 裁 4，承钥匙→偷偷配先例）；P02 订单面裁 a 不入界面——界面按探索拍三态形呈、订单面位留空如实注（sn: null、pending P2.ORDER.SN_MAPPING，件①§三.3／件③§七.3）；屏名两位形 P01–P03、C-ID 拍内唯一、零真实流量、§四.1 第⑤条机防族＋全域结算禁列沿用）</strong>；依据 <strong>M16_批次1_Schema冻结契约_v1</strong> §四 + 分叉词表终表 + P01–P12 落位成品）<br>
-    <span class="warn">原型仅供评审验证交互口径——正文展示、计分与落位成品不一致；生产实现中决策采集与计分在服务端，前端不呈现任何维度/分值。</span>
-  </div>
 </header>
 
 <div class="tabs" role="tablist" aria-label="选择节拍">
-  <button class="tab" role="tab" id="tab-p01" aria-controls="scene-p01" aria-selected="false">P01 · 档案箱</button>
+  <button class="tab" role="tab" id="tab-p01" aria-controls="scene-p01" aria-selected="true">P01 · 档案箱</button>
   <button class="tab" role="tab" id="tab-p02" aria-controls="scene-p02" aria-selected="false">P02 · 死者</button>
   <button class="tab" role="tab" id="tab-p03" aria-controls="scene-p03" aria-selected="false">P03 · 邀请函</button>
   <button class="tab" role="tab" id="tab-p04" aria-controls="scene-p04" aria-selected="false">P04 · 凶器链</button>
-  <button class="tab" role="tab" id="tab-p05" aria-controls="scene-p05" aria-selected="true">P05 · 时间窗</button>
+  <button class="tab" role="tab" id="tab-p05" aria-controls="scene-p05" aria-selected="false">P05 · 时间窗</button>
   <button class="tab" role="tab" id="tab-p06" aria-controls="scene-p06" aria-selected="false">P06 · 第一份材料</button>
   <button class="tab" role="tab" id="tab-p07" aria-controls="scene-p07" aria-selected="false">P07 · 第二份材料</button>
   <button class="tab" role="tab" id="tab-p08" aria-controls="scene-p08" aria-selected="false">P08 · 第三份材料</button>
   <button class="tab" role="tab" id="tab-p09" aria-controls="scene-p09" aria-selected="false">P09 · 档案暗格</button>
   <button class="tab" role="tab" id="tab-p10" aria-controls="scene-p10" aria-selected="false">P10 · 深水区</button>
   <button class="tab" role="tab" id="tab-p11" aria-controls="scene-p11" aria-selected="false">P11 · 暗线浮现</button>
-  <button class="tab" role="tab" id="tab-p12" aria-controls="scene-p12" aria-selected="false">P12 · 归档（空场景）</button>
+  <button class="tab" role="tab" id="tab-p12" aria-controls="scene-p12" aria-selected="false">P12 · 归档</button>
 </div>
 
 <!-- ================= P01 · v3.6 批次 5 后续波增量（三态形 · 源＝件①98dab365…／件③8156b1bd…／件②8788ef0a…） ================= -->
-<section class="scene hidden" id="scene-p01" role="tabpanel" aria-labelledby="tab-p01">
+<section class="scene" id="scene-p01" role="tabpanel" aria-labelledby="tab-p01">
   <h2>第一节 · 档案箱</h2>
   <div id="p01-body"></div>
   <div class="hintrow" id="p01-hint">材料不齐——这就是你要归档的原因。写下你在意的词。</div>
@@ -178,12 +178,12 @@
 </section>
 
 <!-- ================= P05 ================= -->
-<section class="scene" id="scene-p05" role="tabpanel" aria-labelledby="tab-p05">
+<section class="scene hidden" id="scene-p05" role="tabpanel" aria-labelledby="tab-p05">
   <h2>第五节 · 时间窗</h2>
-  <div class="scene-clock" id="p05-clock" aria-label="场景压力窗计时">
+  <div class="scene-clock" id="p05-clock" aria-label="时间窗">
     <span id="p05-clockread">16:24</span>
     <div class="bar" id="p05-bar"><i></i></div>
-    <span id="p05-remain">离报送 36 分钟</span>
+    <span id="p05-remain">离取件 36 分钟</span>
   </div>
   <div id="p05-body"></div>
   <div class="hintrow" id="p05-hint">五点之前你只能先看、只可问。写下你在意的词。</div>
@@ -269,20 +269,6 @@
   <div id="p12-decision"></div>
 </section>
 
-<footer>
-  引擎口径（冻结契约 §四）：最长匹配优先｜一次输入只计一次命中、禁子串回溯叠计（§四.1）｜异维多命中判 0 并记日志（§四.1）｜
-  chips 只取本拍 L2 集——P04 膛线/磨损/钥匙 已裁不入 L2、P05 对时 chip=「拿我的做准」、撬痕 chip=「压簧边」（§四.5，L1 仍可输入命中）｜
-  动作词黑名单 拒签/开盖/验针/复查/签字栏 + 送修单 X2 排除，不进 chips/建议词（§四.2/§三.4）｜
-  未匹配统一文案「没有找到关于"xxx"的直接线索。」+ 建议词（§四.6）｜S/N 只匹配探索段输入，决策落笔不进词库（§四.4）｜
-  决策点无按钮：自由输入隐式分叉，first-decision-wins（§二.2）｜P05 压力窗 16:24–17:00，决策卡出现后时钟继续走（N4）；超窗=forced 叙事归档：不计任何分（J/P 不采、定罪零流向）、不占首采位、留重进补采（seq=173 裁 + 终表 §二；L153 注同步）｜
-  分叉词表 v2=终表 §四 #1–6：P04 trust 删裸「信」、doubt 增复查/复查磨损/要求复查；P05 trust 增锁定窗口、doubt 增拒签/怀疑/被动过/撬痕/复查对时；混合命中含包含按最长匹配消解判侧（否定组合归 B）、真并存判 amb 重问不采分；G11 黑名单词仅对解析器开放，展示域禁令不变。
-  v3=终表 §四 #7（候 P06 r2 双绿后落）：新增 P06 场景——词库 12 行=S6/N6 正常采 S/N（窗口 C-WIN-01 P05 首计、本拍 L3 不计分系服务端去重，原型本地 probe 不模拟）；chips=L2 终集六词（账本/纸条/漆皮/三遍/一模一样/不藏，S3/N3，项目 seq=221 裁定 1）；分叉=双主动选题型（A 追账→T、B 问丈夫→F；定罪流向 A→B轨+1、B→A轨+1 系服务端口径）——**不适用 doubt 优先/否定归 B**，仅承通用规则：复合词面、禁单字、混合命中含包含按最长匹配消解、真并存判 amb 重问一次不采分不占首采；追账/查账 X2 全出仅限展示域（词库/chips/建议词/返回块），决策解析器面正常开放（终表 §三）；P06 无计时器、无 forced 态；两轨互污禁令落点：分叉输入永不触发 S/N 词库命中与采样，探索输入永不触发分叉面。symmetric 否定前置作废（seq=241 裁定 2·终表 §三五则，非归 B 规则）：单侧命中被 不/没/别/未 紧邻前置→该命中作废，剔尽落 none 统一重问（不采分不占首采），正面落笔对侧仍可正常采。
-  v3.2=测试 seq=251 P3 修复（重问提示叠加）——一行修复令 seq=255，创建侧类名统一 done-note dec-tip。
-  v3.3（seq=614 落位增量，6584f49b 终登后的单独增量·单独探针·单独登记）：① P11 场景——词库 13 行=S7/N6 正常采 S/N（13 行均 L2；词库数组序＝落位件表行序（verbatim 可对比），chips 展示序按 scene.chipsOrder＝正文过手序 S-1：壁画/轮廓/画给你看/车被开走/没对任何人讲/相册里的车/那出戏不吉利/旧戏箱/彩排录像/改了戏词/天亮之前，别回头/那张票/同一个人——与头注③/未匹配引导行/快照 chips 表四处同序）；分叉=双主动选题型 symmetric=true（A 追那人→E+1、B 回枪案→I+1 直对应——P11＝E/I 全路径唯一最低采样位、两选项均计分、定罪不计、其他选择不计 S/N；A/B 面 24 串 r2 草稿 §三分叉解析行 verbatim 入表——终表 §五 入册系服务端引用形）；追那人/回枪案 X2 L1/L2/L3 全出＝不进词库/chips/建议词，决策解析器面正常开放；P11 无计时器、无 forced 态（r2 分叉解析行 forced 描述系五则模板语——无计时即无超窗触发，与 P06 同形；若项目另裁 P11 需叙事 forced 入口，请下令）；尾句「往外还是收回，起步走哪条道，看你的。」未注册走未匹配兜底。② 比较面去标点归一（裁定六①无逗号子项提前收口）：normalize() 原归一面不动，新增 denorm()=归一面再剔除标点集；matchEntry 双轨——词面在原归一面或去标点面任一面命中即命中，最长匹配/一次一计/异维判 0 在两轨同构复用（长度以原归一面词面长计），效果=全角/半角/无逗号输入均命中「天亮之前，别回头」同一行；展示域零触碰（chips/建议词/返回块/正文保 canon 逗号逐字形）；parseDecision 不动（两轨隔离——分叉轨不读词库命中、24 面串无标点）。FAIL 不变式=歌词行三路命中外其余命中集合零变化。
-  页边旁记＝UI 裁定方案 1：标准 blockquote、字号降一档、次级文本 token、左细竖线、无背景/图标/斜体/加粗、不折叠、无额外 ARIA。
-  v3.4（seq=722 裁定·R-7 P12 半项点名增量，单独增量·单独探针·单独登记）：P12 空场景运行时载体入原型——零池行（lexicon=[]，检索命中轨在 P12 不产生得分）、chips 全域停用＝容器空（chipsFor 返回空集）、未匹配走 README 统一框架句「没有找到关于"xxx"的直接线索。」＋建议词位置空（空 chips 容器）；正文呈示位仅 canon 三行提示语＋尾句逐字（verbatim 源＝落位件 b20cafeedb0819bec7f00c1ef2df9ba4 / r2 草稿 e60adf35… 正文域逐行一致的已核形；弯引号＝展示层字形，O-4 口径，verbatim 断言行内串不含外框＝UI seq=663 O-2 采纳形）；零场景叙事（不新增任何自撰叙述/提示行）、无决策卡无分叉面（R-8 按段独立首采系服务端口径，不在本增量——玩家直输＝分类器填充输入，前端不判段不计分）、无计时器无 forced；probe=false＝零 S/N 采样触点，词库零行＝零 C-ID 触点。P01–P11 全量回归零差为验收前提（终验探针 45 断言案形复跑；其中 R7.7 由「P12 未入原型」订正为「P12 空场景形」系探针侧变更非改码）。落位件与 README 一字未动（本增量仅原型件）。
-  v3.6（seq=1200 动工令·批次 5 后续波 P01–P03 增量，单独增量·单独探针·单独登记）：三屏以三态形入原型——空场景（初始呈正文＋本拍 L2 chips）／探索命中（22 行词库 kw/syn/维 verbatim 镜像 64ffbde 引擎实形，件③为强锚；最长匹配/一次一计/同维歧义与异维判 0 复用既有引擎轨；P3「邮戳」同拍双属行＝歧义判 0 与引擎同构）／未匹配兜底（统一框架句＋建议词≡chips）。P01–P03 decision=null：件③§七实测 BEATS.decision P1／P3=null、P2='order' 系顺序信号非自由落笔分叉，DECISION_FORKS 零 P1–P3 条目、triggerAfter 无适用面（件①c 域一律「无适用面」如实注）。P02 订单面裁 a 不入界面——ORDER_SIGNAL 三选项 sn: null、pending P2.ORDER.SN_MAPPING，界面按探索拍三态形呈、订单面位留空如实注，不出选项行、不补撰选后语义；「表」→label 降档「手表」（seq=1181 裁 4）仅展示层，词面行 verbatim 不动；裸「表」零 chip（H-2）。块型映射承件①§八.4 建议形：清单→&lt;ul&gt;、表格→&lt;table&gt;、引语→quote、旁记→marginalia、**…**→&lt;b&gt;，字符不动；hintrow＝落位件逐字句＋既有固定邀句「写下你在意的词。」拼接，零自撰叙述；probe=true 镜像本拍 S/N 采样触点（件③§一 维分布 22 行全 S/N；P3 BEATS sn=null 系轨标记、C-ID 采样触点仍在，本条为披露性裁形）；存量九屏（P04–P12）零扰动——深比对＋逐行存在性双闸（§四.1 全绿重跑）。
-</footer>
 </div>
 
 <script>
@@ -392,6 +378,7 @@ const SCENES = {
   p03: {
     probe: true,
     chipsOrder: ["寄出记录","邮戳","收件人","秋后聚齐","带上账","七月新规"],
+    chipsExclude: ["邮戳"],   /* IT-P03-01 形A：撤出展示域≠撤出词面域——lexicon/syn/chipsOrder verbatim 不动 */
     lexicon: [
       {kw:"寄出记录", syn:["邀请","复印件","邮戳"], map:"S", L2:true,
        block:"寄出记录细节：七月寄出、字迹是庄伯年亲笔、收件人各不相同"},   /* C-MAIL-01 */
@@ -955,6 +942,7 @@ function chipsFor(scene){
   const out = [];
   for(const e of scene.lexicon){
     if(!e.L2) continue;
+    if((scene.chipsExclude || []).includes(e.kw)) continue;  /* 展示层排除集（IT-P03-01 形A），词面轨零触 */
     if(ACTION_BLACKLIST.some(b => (e.label||e.kw).includes(b))) continue;  /* 机器防线 */
     out.push({word:e.kw, text:e.label || e.kw});
   }
@@ -1076,7 +1064,7 @@ function maybeShowDecision(sk){
     '<h3>' + (d.title || "单联与案卷，都摊在你面前") + '</h3>' +
     '<p>' + d.prompt + '</p>' +
     '<div class="lines">' + d.lines.map(l => '<div><span>' + l[0] + '</span> · ' + l[1] + '</div>').join("") + '</div>' +
-    '<input type="text" id="' + sk + '-decinput" placeholder="写下你要做的那一件事……" aria-label="决策输入（无按钮，落笔即分叉）" autocomplete="off">' +
+    '<input type="text" id="' + sk + '-decinput" placeholder="写下你要做的那一件事……" aria-label="写下你要做的那一件事" autocomplete="off">' +
     '</div>';
   const di = document.getElementById(sk + "-decinput");
   di.addEventListener("keydown", ev => {
@@ -1162,7 +1150,7 @@ function renderForced(sk){
     '<h3>案卷落章</h3>' +
     '<p>' + d.timeoutText + '</p>' +
     '<p>可你刚才要落的那一道，还在你手里。要写，就现在写。</p>' +
-    '<input type="text" id="' + sk + '-decinput" placeholder="写下你本要做的那一件事……" aria-label="决策输入（补采入口，无按钮）" autocomplete="off">' +
+    '<input type="text" id="' + sk + '-decinput" placeholder="写下你本要做的那一件事……" aria-label="写下你本要做的那一件事" autocomplete="off">' +
     '</div>';
   const di = document.getElementById(sk + "-decinput");
   di.addEventListener("keydown", ev => {
@@ -1185,7 +1173,7 @@ function startClock(){
     const m = Math.min(CLOCK_START + Math.floor(clockMin), 60);
     read.textContent = m < 60 ? fmt(m) : "17:00";
     const left = Math.max(0, CLOCK_END - Math.floor(clockMin));
-    remain.textContent = left > 0 ? "离报送 " + left + " 分钟" : "报送钟到";
+    remain.textContent = left > 0 ? "离取件 " + left + " 分钟" : "取件钟到";
     bar.querySelector("i").style.width = (Math.min(clockMin, CLOCK_END)/CLOCK_END*100) + "%";
     if(clockMin >= CLOCK_END*0.8){ bar.classList.add("danger"); wrapEl.classList.add("danger"); }
     if(clockMin >= CLOCK_END && !state.p05.firstDecision && !state.p05.timeoutForced){
